@@ -132,30 +132,35 @@ void bijectB(const double *B, double *Bt, const int n, const int m) {
 
 void square_dgemm(const int M, const double *A, const double *B, double *C)
 {
-    const int n_blocks = M / BLOCK_SIZE + (M%BLOCK_SIZE? 1 : 0);
-    int bi, bj, bk;
+  const int n_blocks = M / BLOCK_SIZE + (M%BLOCK_SIZE? 1 : 0);
+  int bi, bj, bk;
 
-	// Setup
-	int temp = M*M;
-	double tempC[4] __attribute__((aligned(16))) = {0};
-	double At[temp] __attribute__((aligned(16)));
-	double Bt[temp] __attribute__((aligned(16)));
-	bijectA(A, At, M, n_blocks);
-	bijectB(B, Bt, M, n_blocks);
+  // Setup
+  int temp = M*M;
+  double tempC[4] __attribute__((aligned(16))) = {0};
+  double At[temp] __attribute__((aligned(16)));
+  double Bt[temp] __attribute__((aligned(16)));
+  bijectA(A, At, M, n_blocks);
+  bijectB(B, Bt, M, n_blocks);
 
-    for (bi = 0; bi < n_blocks; ++bi) {
-        const int i = bi * BLOCK_SIZE;
-        for (bj = 0; bj < n_blocks; ++bj) {
-            const int j = bj * BLOCK_SIZE;
+  for (bi = 0; bi < n_blocks; ++bi) {
 
-			kdgemm2P2(M, tempC, &At[bi*M*2], &Bt[bj*M*2]);
-			C[i+j*M] += tempC[0];
-			C[i+j*M+1] += tempC[3];
-			C[i+(j+1)*M] += tempC[2];
-			C[i+(j+1)*M+1] += tempC[1];
+    for (bj = 0; bj < n_blocks; ++bj) {
 
-			memset(tempC, 0, 4*sizeof(double));
-        }
+
+      kdgemm2P2(M, tempC, &At[bi*M*2], &Bt[bj*M*2]);
+
+      const int i = bi * BLOCK_SIZE;
+      const int j = bj * BLOCK_SIZE;
+
+      C[i+j*M] += tempC[0];
+      C[i+j*M+1] += tempC[3];
+      C[i+(j+1)*M] += tempC[2];
+      C[i+(j+1)*M+1] += tempC[1];
+
+      memset(tempC, 0, 4*sizeof(double));
+
     }
+  }
 }
 
