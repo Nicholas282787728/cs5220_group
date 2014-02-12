@@ -111,56 +111,132 @@ void printMatrixR(const double *A, const int n) {
 }
 
 // n is the size of A, m is the number of blocks
-void bijectA(const double *A, double *At, const int n, const int m) {
-	for (int i = 0; i < m; i++) {
-		for (int j = 0; j < n; j++) {
-			At[i*n*2 + 2*j]     = A[j*n + i*2];
-			At[i*n*2 + 2*j + 1] = A[j*n + i*2 + 1];
+void bijectA(const double *A, double *At, const int n, const int m, const int odd) {
+	if (odd == 0) {
+		for (int i = 0; i < m; i++) {
+			for (int j = 0; j < n; j++) {
+				At[i*n*2 + 2*j]     = A[j*n + i*2];
+				At[i*n*2 + 2*j + 1] = A[j*n + i*2 + 1];
+			}
+		}
+	}
+	else {
+		// First loop over the blocks
+		for (int i = 0; i< m; i++) {
+			// Then for each block, go to each column, except the last one
+			for (int j = 0; j < n-1; j++) {
+				At[i*n*2 + 2*j] = A[j*(n-1) + i*2];
+				//printf("Stored (%d, %d) in (%d, %d)\n", i*2, j*(n-1), i*n*2, 2*j);
+
+				// For the case where of the last row being padded with zeros
+				if (i != m-1) {
+					At[i*n*2 + 2*j +1] = A[j*(n-1) + i*2 +1];
+					//printf("Stored %d in %d\n", i*2+1+ j*(n-1), i*n*2+ 2*j+1);
+				}
+				else {
+					At[i*n*2 + 2*j + 1] = 0;
+					//printf("Stored %d in %d\n", 0, i*n*2+ 2*j+1);
+				}
+			}
+
+			// Last columns padded with zero
+			At[i*n*2 + 2*(n-1)] = 0;
+			At[i*n*2 + 2*(n-1) + 1] = 0;
 		}
 	}
 }
 
 // n is the size of B, m is the number of blocks
-void bijectB(const double *B, double *Bt, const int n, const int m) {
-	for (int i = 0; i < m; i++) {
-		for (int j = 0; j < n; j++) {
-			Bt[i*n*2 + 2*j]     = B[j + (i*2)*n];
-			Bt[i*n*2 + 2*j + 1] = B[j + (i*2 + 1)*n];
+void bijectB(const double *B, double *Bt, const int n, const int m, const int odd) {
+	// Slightly different style from the bijectA function, but same thing.
+	if (odd == 0) {
+		for (int i = 0; i < m; i++) {
+			for (int j = 0; j < n; j++) {
+				Bt[i*n*2 + 2*j]     = B[j + (i*2)*n];
+				Bt[i*n*2 + 2*j + 1] = B[j + (i*2 + 1)*n];
+			}
+		}
+	}
+
+	else {
+		for (int i = 0; i< m; i++) {
+			for (int j = 0; j < n-1; j++) {
+				Bt[i*n*2 + 2*j] = B[j + i*2*(n-1)];
+
+				if (i != m-1) {
+					Bt[i*n*2 + 2*j + 1] = B[j + (i*2 + 1)*(n-1)];
+				}
+				else {
+					Bt[i*n*2 + 2*j + 1] = 0;
+				}
+			}
+
+			// Last columns padded with zero
+			Bt[i*n*2 + 2*(n-1)] = 0;
+			Bt[i*n*2 + 2*(n-1) + 1] = 0;
 		}
 	}
 }
 
 void square_dgemm(const int M, const double *A, const double *B, double *C)
 {
-  const int n_blocks = M / BLOCK_SIZE + (M%BLOCK_SIZE? 1 : 0);
-  int bi, bj, bk;
+	int bi, bj, bk, temp, n;
+	int odd = 0; 
 
-  // Setup
-  int temp = M*M;
-  double tempC[4] __attribute__((aligned(16))) = {0};
-  double At[temp] __attribute__((aligned(16)));
-  double Bt[temp] __attribute__((aligned(16)));
-  bijectA(A, At, M, n_blocks);
-  bijectB(B, Bt, M, n_blocks);
+	// Check if the matrices is even or not.
+	if (M % 2 == 1) {
+		odd = 1;
+		n = M+1;
+	}
+	else {
+		n = M;
+	}
 
-  for (bi = 0; bi < n_blocks; ++bi) {
+	// Used for just setting up the arrays
+	temp = n*n;
 
-    for (bj = 0; bj < n_blocks; ++bj) {
+	// Setup
+	const int n_blocks = M / BLOCK_SIZE + (M%BLOCK_SIZE? 1 : 0);
+	double tempC[4] __attribute__((aligned(16))) = {0};
+	double At[temp] __attribute__((aligned(16)));
+	double Bt[temp] __attribute__((aligned(16)));
+	bijectA(A, At, n, n_blocks, odd);
+	bijectB(B, Bt, n, n_blocks, odd);
 
+	for (bi = 0; bi < n_blocks; ++bi) {
+		const int i = bi * BLOCK_SIZE;
+		for (bj = 0; bj < n_blocks; ++bj) {
+			const int j = bj * BLOCK_SIZE;
 
-      kdgemm2P2(M, tempC, &At[bi*M*2], &Bt[bj*M*2]);
+			kdgemm2P2(n, tempC, &At[bi*n*2], &Bt[bj*n*2]);
+			C[i+j*M] += tempC[0];
 
-      const int i = bi * BLOCK_SIZE;
-      const int j = bj * BLOCK_SIZE;
+			if (odd == 1) {
+				// Case 1: at bottom-most row of an odd row, don't store bottom ones
+				if (bi == n_blocks - 1 && bj != n_blocks -1 ) { 
+					C[i+(j+1)*M] += tempC[2];
+				}
+				// Case 2: At right-most, need to not store the top
+				else if (bj == n_blocks - 1 && bi != n_blocks - 1) {
+					C[i+j*M+1] += tempC[3];
+				}
+				// Case 3: 
+				else if (bj != n_blocks - 1 && bi != n_blocks -1) {
+					C[i+j*M+1] += tempC[3];
+					C[i+(j+1)*M] += tempC[2];
+					C[i+(j+1)*M+1] += tempC[1];
+				}
 
-      C[i+j*M] += tempC[0];
-      C[i+j*M+1] += tempC[3];
-      C[i+(j+1)*M] += tempC[2];
-      C[i+(j+1)*M+1] += tempC[1];
+			}	
+			else {
+				C[i+j*M+1] += tempC[3];
+				C[i+(j+1)*M] += tempC[2];
+				C[i+(j+1)*M+1] += tempC[1];
+			}
 
-      memset(tempC, 0, 4*sizeof(double));
-
-    }
-  }
+			memset(tempC, 0, 4*sizeof(double));
+		}
+	}
 }
+
 
