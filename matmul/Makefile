@@ -30,10 +30,10 @@ matmul.o: matmul.c
 	$(CC) -c $(CFLAGS) $(CPPFLAGS) $<
 
 %.o: %.c
-	$(CC) -c $(CFLAGS) $(OPTFLAGS) $(CPPFLAGS) $<
+	$(CC) -msse4.2 -c $(CFLAGS) $(OPTFLAGS) $(CPPFLAGS) $<
 
 %.o: %.f
-	$(FC) -msse4.2 -c $(FFLAGS) $(OPTFLAGS) $<
+	$(FC) -c $(FFLAGS) $(OPTFLAGS) $<
 
 dgemm_blas.o: dgemm_blas.c
 	$(CC) -c $(CFLAGS) $(CPPFLAGS) $(INCBLAS) $< 
