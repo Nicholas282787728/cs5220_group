@@ -33,7 +33,7 @@ matmul.o: matmul.c
 	$(CC) -c $(CFLAGS) $(OPTFLAGS) $(CPPFLAGS) $<
 
 %.o: %.f
-	$(FC) -c $(FFLAGS) $(OPTFLAGS) $<
+	$(FC) -msse4.2 -c $(FFLAGS) $(OPTFLAGS) $<
 
 dgemm_blas.o: dgemm_blas.c
 	$(CC) -c $(CFLAGS) $(CPPFLAGS) $(INCBLAS) $< 
@@ -51,7 +51,7 @@ info-%.out: matmul-%
 	csub ./runner.sh ./$< $*
 
 timing-%.csv: matmul-%
-	./$<
+	OMP_NUM_THREADS=1 ./$<
 
 # ---
 
