@@ -19,6 +19,9 @@ void trans(const double *A, double *At, const int m) {
   }
 }
 
+// Attempting to use memcpy to copy something
+// from an unaligned array into an aligned array
+// gives weird compiler errors
 void mcopy(const double *A, double *At, const int m) {
   for (int i = 0; i < m; i++) {
     for (int j = 0; j < m; j++) {
@@ -27,7 +30,14 @@ void mcopy(const double *A, double *At, const int m) {
   }
 }
 
-
+/*
+ * Block matrix multiply kernel.
+ * Inputs:
+ *    A: 8-by-8 matrix in row major format.
+ *    B: 8-by-8 matrix in column major format.
+ * Outputs:
+ *    C: 8-by-8 matrix in column major format.
+ */
 void kdgemm(double * restrict C, const double * restrict A,  const double * restrict B) {
   
   for (int i = 0; i < 8; i++) {
