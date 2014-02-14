@@ -36,7 +36,7 @@ void mcopy(const double *A, double *At, const int m) {
  *    A: 8-by-8 matrix in row major format.
  *    B: 8-by-8 matrix in column major format.
  * Outputs:
- *    C: 8-by-8 matrix in column major format.
+ *    C: 8-by-8 matrix in row major format.
  */
 void kdgemm(double * restrict C, const double * restrict A,  const double * restrict B) {
   
