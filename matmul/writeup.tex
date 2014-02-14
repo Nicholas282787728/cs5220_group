@@ -223,6 +223,29 @@
       \label{tab:looporder}
     \end{table}
 
-    \subsection{Compiler Flags}
+    Loop reordering was also applied to the copy commands:
+    \begin{lstlisting}
+    if (odd == 0) {
+      for (int j = 0; j<n; j++) {
+        for (int i = 0; i < m; i++) {
+          At[i*n*2 + 2*j]     = A[j*n + i*2];
+          At[i*n*2 + 2*j + 1] = A[j*n + i*2 + 1];
+        }
+      }
+    }
+    \end{lstlisting}
+
+    while it wasn't obvious which order should be better as At increments via j via A increments via i, it turns out j, i ordering is \emph{slightly} faster.
+
+    Another small speed increase laid with the serial performance of the copying. Initially, we actually declared to different arrays, one for A and one for B.
+    We find that if we just create one giant array of size $2n^2$, and copy A, B into that giant array, performance increase slightly.
+
+    \subsection{Compiler Flags (Sep)}
+
+    \subsection{Memory Usage}
+
+    One 
+
+    \subsection{SSE (Nick)}
 
 \end{document}
