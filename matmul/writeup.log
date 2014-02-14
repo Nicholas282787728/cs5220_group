@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2013.8.12)  14 FEB 2014 16:41
+This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2013.8.12)  14 FEB 2014 17:43
 entering extended mode
  %&-line parsing enabled.
 **writeup.tex
@@ -258,23 +258,27 @@ LaTeX Font Info:    Try loading font information for U+msb on input line 216.
 
 (/usr/share/texmf-texlive/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2009/06/22 v3.00 AMS symbols B
-)
-AED: lastpage setting LastPage [2 <./odd.pdf>] (./writeup.aux) ) 
+) [2 <./odd.pdf>] [3]
+AED: lastpage setting LastPage [4] (./writeup.aux) ) 
 Here is how much of TeX's memory you used:
- 3600 strings out of 495061
- 48111 string characters out of 1182621
- 239819 words of memory out of 3000000
- 6744 multiletter control sequences out of 15000+50000
- 6758 words of font info for 27 fonts, out of 3000000 for 9000
+ 3650 strings out of 495061
+ 48618 string characters out of 1182621
+ 302819 words of memory out of 3000000
+ 6793 multiletter control sequences out of 15000+50000
+ 7104 words of font info for 28 fonts, out of 3000000 for 9000
  28 hyphenation exceptions out of 8191
- 27i,12n,49p,290b,1025s stack positions out of 5000i,500n,10000p,200000b,50000s
-{/usr/share/tex
-mf-texlive/fonts/enc/dvips/base/8r.enc}</usr/share/texmf-texlive/fonts/type1/pu
-blic/amsfonts/cm/cmbx12.pfb></usr/share/texmf-texlive/fonts/type1/public/amsfon
-ts/cm/cmr10.pfb></usr/share/texmf-texlive/fonts/type1/urw/courier/ucrr8a.pfb>
-Output written on writeup.pdf (2 pages, 84165 bytes).
+ 27i,12n,49p,290b,1617s stack positions out of 5000i,500n,10000p,200000b,50000s
+{/usr/share/texmf-texlive/f
+onts/enc/dvips/base/8r.enc}</usr/share/texmf-texlive/fonts/type1/public/amsfont
+s/cm/cmbx12.pfb></usr/share/texmf-texlive/fonts/type1/public/amsfonts/cm/cmmi10
+.pfb></usr/share/texmf-texlive/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/s
+hare/texmf-texlive/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/share/texmf-te
+xlive/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texmf-texlive/fonts
+/type1/public/amsfonts/cm/cmti10.pfb></usr/share/texmf-texlive/fonts/type1/urw/
+courier/ucrr8a.pfb>
+Output written on writeup.pdf (4 pages, 127650 bytes).
 PDF statistics:
- 206 PDF objects out of 1000 (max. 8388607)
+ 228 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
  11 words of extra memory for PDF output out of 10000 (max. 10000000)
 
