@@ -22,9 +22,12 @@ int DIM_N=N;
 int DIM_P=P;
 
 /*
- * Block matrix multiply kernel (simple fixed-size case).
- * Use restrict to tell the compiler there is no aliasing,
- * and inform the compiler of alignment constraints.
+ * Block matrix multiply kernel.
+ * Inputs:
+ *    A: 8-by-8 matrix in row major format.
+ *    B: 8-by-8 matrix in column major format.
+ * Outputs:
+ *    C: 8-by-8 matrix in row major format.
  */
 void kdgemm(const double * restrict A,
             const double * restrict B,
