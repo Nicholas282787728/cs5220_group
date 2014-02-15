@@ -27,9 +27,9 @@ void kdgemm(const double * restrict A,
             const double * restrict B,
             double * restrict C)
 {
-    __assume_aligned(A, 16);
-    __assume_aligned(B, 16);
-    __assume_aligned(C, 16);
+    __builtin_assume_aligned(A, 16);
+    __builtin_assume_aligned(B, 16);
+    __builtin_assume_aligned(C, 16);
 
     for (int j = 0; j < N; ++j) {
         for (int k = 0; k < P; ++k) {

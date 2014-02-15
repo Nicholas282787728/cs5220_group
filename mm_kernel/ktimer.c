@@ -3,6 +3,7 @@
 #include <string.h>
 #include <math.h>
 #include <omp.h>
+#include <mm_malloc.h>
 
 #define MIN_RUNS 4
 #define MIN_SECS 0.25
