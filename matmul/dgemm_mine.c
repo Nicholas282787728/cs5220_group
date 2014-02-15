@@ -26,6 +26,9 @@ const char* dgemm_desc = "Simple blocked dgemm.";
 
 /*
  * Block matrix multiply kernel.
+ *
+ * From https://bitbucket.org/dbindel/cs5220-s14/wiki/sse
+ * 
  * Inputs:
  *    A: 2-by-P matrix in column major format.
  *    B: P-by-2 matrix in row major format.
