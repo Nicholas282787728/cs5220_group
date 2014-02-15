@@ -240,6 +240,15 @@
     Another small speed increase laid with the serial performance of the copying. Initially, we actually declared to different arrays, one for A and one for B.
     We find that if we just create one giant array of size $2n^2$, and copy A, B into that giant array, performance increase slightly.
 
+    With all these small optimization and the flags (see section below), we achieve performance shown at figure~\ref{fig:final}.
+
+    \begin{figure}[h]
+      \centering
+      \includegraphics[width=.7\textwidth]{final.pdf}
+      \caption{Final speedup}
+      \label{fig:final}
+    \end{figure}
+
     \section{Language Keywords}
 \subsection{Restrict}
 
@@ -372,6 +381,9 @@ Description:	System CBLAS dgemm.
 
     Note that it's a similar miss rate in terms of percentages, but our algorithm had to
     use much more read/writes than the BLAS algorithm, which contributes to inefficiencies.
+
+    It's quite interesting to see that such small differences in the miss rates will result in such a large cut in performance
+    from the BLAS package.
 
     \subsection{SSE (Nick)}
 
