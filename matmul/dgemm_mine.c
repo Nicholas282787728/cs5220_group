@@ -25,20 +25,20 @@ const char* dgemm_desc = "Simple blocked dgemm.";
 #endif
 
 /*
-   A is M-by-K
-   B is K-by-N
-   C is M-by-N
-
-   lda is the leading dimension of the matrix (the M of square_dgemm).
-   */
+ * Block matrix multiply kernel.
+ * Inputs:
+ *    A: 2-by-P matrix in column major format.
+ *    B: P-by-2 matrix in row major format.
+ * Outputs:
+ *    C: 2-by-2 matrix with element order [c11, c22, c12, c21]
+ *       (diagonals stored first, then off-diagonals)
+ */
 void kdgemm2P2(const int P, double * restrict C,
     const double * restrict A,
     const double * restrict B)
 {
+
   // This is really implicit in using the aligned ops...
-  //__assume_aligned(A, 16);
-  //__assume_aligned(B, 16);
-  //__assume_aligned(C, 16);
   __builtin_assume_aligned(A, 16);
   __builtin_assume_aligned(B, 16);
   __builtin_assume_aligned(C, 16);
