@@ -33,6 +33,7 @@ void kdgemm(const double * restrict A,
             const double * restrict B,
             double * restrict C) {
   
+  #pragma unroll(8)
   for (int i = 0; i < P; i++) {
     
     __m128d c0;
