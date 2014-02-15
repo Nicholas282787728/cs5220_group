@@ -9,7 +9,7 @@ PLATFORM=icc
 include Makefile.in.$(PLATFORM)
 
 .PHONY:	all
-all:	ktimer-simple ktimer-nick ktimer-bindel
+all:	ktimer ktimer-simple ktimer-nick ktimer-bindel
 
 .PHONY: run
 run:
@@ -19,6 +19,9 @@ run:
 
 # ---
 # Rules to build the drivers
+
+ktimer: $(OBJS) kdgemm_nick.o
+	$(CC) -o $@ $^ $(LDFLAGS) $(LIBS)
 
 ktimer-%: $(OBJS) kdgemm_%.o
 	$(CC) -o $@ $^ $(LDFLAGS) $(LIBS)
