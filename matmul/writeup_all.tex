@@ -386,12 +386,22 @@ Description:	System CBLAS dgemm.
     from the BLAS package.
 
     \subsection{New Kernel}
+
 While benchmarking matrix multiplication based on Bindel's kernel we also attempted to write a faster one, 
 focusing on multiplying 8x8 matrices (saved in mm\_kernel/kdgemm\_doublerainbow.c). The approach was fairly straightforward: starting with a 
 naive implementation we unrolled the 2 inner loops and replaced adjacent operations with their equivalent SSE instructions. 
 Afterwards it became clear that replacing A and C with their transposes would make all memory accesses to each matrix sequential,
 improving cache use. This put the kernel on par with Bindel's.
-
+\begin{table}[h]
+  \centering
+  \begin{tabular}{r c c}
+    Name & Size & MFlops\\
+    Our (double rainbow) & 8 by 8 & 5525.91 \\
+    Naive (simple) & 4 by 4 & 2964.03
+  \end{tabular}
+  \caption{Kernel Timing Results}
+  \label{tab:kernel}
+\end{table}
 Several other optimizations were tried to no benefit. 
 Unlike Bindel's kernel the basic 8x8 SSE is faster with the Intel compiler than gcc. 
 After reading some documentation on icc we found a flag called 'fast' that makes architecture-specific optimizations 
@@ -400,7 +410,9 @@ to eliminate false dependencies past the 8 in the final version. We also tried r
 
 We eventually did luck into another performance boost. Using Bindel's kernel we had experimented with the -funroll-loops
 flag and assumed it would do a near optimal job, and thought this would be especially true on a small matrix with size known at compile time.
-This turned out to be wrong. After adding '\#pragma unroll(8)' above the main loop on a whim the kernel jumped to 5500Mflops.
+This turned out to be wrong. After adding '\#pragma unroll(8)' above the main loop on a whim the kernel jumped to 5500Mflops (see table~\ref{tab:kernel}).
+
+
 
 The new kernel was not ready in time to integrate with the main dgemm routine. It is available only in mm\_kernel/kdgemm\_doublerainbow.c. 
 It is likely some performance would be lost making it work with larger matrices.
