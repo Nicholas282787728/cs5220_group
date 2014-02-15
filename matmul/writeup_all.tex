@@ -396,10 +396,13 @@ improving cache use. This put the kernel on par with Bindel's.
   \centering
   \begin{tabular}{r c c}
     Name & Size & MFlops\\
-    Our (double rainbow) & 8 by 8 & 5525.91 \\
-    Naive (simple) & 4 by 4 & 2964.03
+    Our (double rainbow) & 8 by 8 by 8 & 5525.91 \\
+    Bindel's 2P2 (gcc) & 2 by 5000 by 2 & 4885.36 \\
+    Our (double rainbow 4 x 4) & 4 by 4 by 4 & 4178.78 \\
+    Bindel's 2P2 (icc) & 2 by 5000 by 2 & 3644.69 \\
+    Naive (simple) & 4 by 4 by 4& 2964.03
   \end{tabular}
-  \caption{Kernel Timing Results}
+  \caption{Kernel Timing Results (Note: Bindel's kernel seems to do slightly better for larger $P$ values).}
   \label{tab:kernel}
 \end{table}
 Several other optimizations were tried to no benefit. 
@@ -411,9 +414,10 @@ to eliminate false dependencies past the 8 in the final version. We also tried r
 We eventually did luck into another performance boost. Using Bindel's kernel we had experimented with the -funroll-loops
 flag and assumed it would do a near optimal job, and thought this would be especially true on a small matrix with size known at compile time.
 This turned out to be wrong. After adding '\#pragma unroll(8)' above the main loop on a whim the kernel jumped to 5500Mflops (see table~\ref{tab:kernel}).
-
-
+The use of icc compiler actually was better for our kernel, compared to Dr. Bindel's.
 
 The new kernel was not ready in time to integrate with the main dgemm routine. It is available only in mm\_kernel/kdgemm\_doublerainbow.c. 
-It is likely some performance would be lost making it work with larger matrices.
+It is likely some performance would be lost making it work with larger matrices. One thing to note though was that using Dr. Bindel's
+kernel, we achieved roughly 4 Gflops of performance, while the simplest case in ktimer allowed 4.8 Gflops. One can safely hypothesize that
+with an 8 by 8 kernel, we would get about 5 Gflops in performance for the best cases, and slightly lower for odd cases.
 \end{document}
