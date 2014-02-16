@@ -38,7 +38,7 @@
 \renewcommand\headrulewidth{0.4pt} % Size of the header rule
 \renewcommand\footrulewidth{0.4pt} % Size of the footer rule
 
-\setlength\parindent{0pt} % Removes all indentation from paragraphs
+%\setlength\parindent{0pt} % Removes all indentation from paragraphs
 
 %----------------------------------------------------------------------------------------
 %	CODE INCLUSION CONFIGURATION
@@ -92,7 +92,7 @@
   \nobreak\extramarks{#1}{}\nobreak
 }
 
-\setcounter{secnumdepth}{0} % Removes default section numbers
+%\setcounter{secnumdepth}{0} % Removes default section numbers
 \newcounter{homeworkProblemCounter} % Creates a counter to keep track of the number of problems
 
 \newcommand{\homeworkProblemName}{}
@@ -159,9 +159,11 @@
 %----------------------------------------------------------------------------------------
 
 \begin{document}
+
+\section{The initial version}
   Our first step to optimizing the program was to jump directly into SSE by using the example script already written in Bitbucket.
-  The hope was that the SSE code was a fast enough kernel that we can build a good multiplier around it; indeed, it an immediate
-  speed-up was noticed! It approximately doubled our naive multiplication. See figure~\ref{fig:initial}.
+  The hope was that the SSE code was a fast enough kernel that we can build a good multiplier around it; indeed, an immediate
+  speed-up was noticed! It approximately doubled our naive multiplication. See figure~\ref{fig:initial}. It should be noted that we had to add the \textit{-msse4.2} flag to the Makefile in order to enable GCC to understand the SEE instructions. This was in addition to the \textit{-O3} flag which was already on. We are going to discuss this further in Section 3.
 
   \begin{figure}[h]
     \centering
@@ -194,7 +196,7 @@
 
   The next step to optimizing this was to play with the flags and use tiny code tricks.
 
-  \subsection{Tricks}
+  \section{Loop Reordering and Copy Optimization}
     One trick that we played with was to do some loop reordering. In our main block, we have the following
 
     \begin{lstlisting}
@@ -208,8 +210,7 @@
     }
     \end{lstlisting}
 
-    We noted that flipping bi and bj's loop order hurts the performance a lot. For example, at the far end of the spectrum of the sizes
-    the different is quite noticable. See table~\ref{tab:looporder}, so we determined that 
+    We noted that flipping bi and bj's loop order hurts the performance a lot. For example, at the far end of the spectrum of the sizes the difference is quite noticeable. See table~\ref{tab:looporder}. So, we determined that Loop reordering was also applied to the copy commands:
 
     \begin{table}
       \centering
@@ -223,7 +224,7 @@
       \label{tab:looporder}
     \end{table}
 
-    Loop reordering was also applied to the copy commands:
+    
     \begin{lstlisting}
     if (odd == 0) {
       for (int j = 0; j<n; j++) {
@@ -235,29 +236,31 @@
     }
     \end{lstlisting}
 
-    while it wasn't obvious which order should be better as At increments via j via A increments via i, it turns out j, i ordering is \emph{slightly} faster.
+    While it wasn't obvious which order should be better as At increments via j and A increments via i, it turns out j, i ordering is \emph{slightly} faster.
 
-    Another small speed increase laid with the serial performance of the copying. Initially, we actually declared to different arrays, one for A and one for B.
-    We find that if we just create one giant array of size $2n^2$, and copy A, B into that giant array, performance increase slightly.
+    Another small speed increase laid with the serial performance of the copying. Initially, we actually declared two different arrays, one for A and one for B.
+    We find that if we just create one giant array of size $2n^2$, and copy A, B into that giant array, the performance increases slightly.
 
-    With all these small optimization and the flags (see section below), we achieve performance shown at figure~\ref{fig:final}.
+    Henceforth, we are going to call the version with all these small optimizations and the \textit{O3} and \textit{msse4.2} flags as the Basis configuration. The performance of this version can be seen in figure~\ref{fig:basis}. The next step is to further optimize this version by working on compiler optimization flags. 
 
     \begin{figure}[h]
       \centering
-      \includegraphics[width=.7\textwidth]{final.pdf}
-      \caption{Final speedup}
-      \label{fig:final}
+      \includegraphics[width=.7\textwidth]{Basis.pdf}
+      \caption{The Basis configuration before further compilation flag optimization.}
+      \label{fig:basis}
     \end{figure}
 
 \section{Compiler Optimization Flags and Keywords}
+
+As mentioned in the previous sections, we start our analysis with the Basis configuration which already has the \textit{O3} and \textit{msse4.2} flags on. The \textit{msse4.2} flag enables GCC to understand SSE instructions which is necessary as our kernel is an SSE code. As for the \textit{O3} flag, we performed our analyses on compiler optimization flags for the three cases of \textit{O1},  \textit{O2} and \textit{O3}. However, due to lack of time, we provide the results only for the latter case as it led to better performance.
 
 \subsection{Loop Optimizations}
 
 Since our manual loop unrolling analysis did not significantly improve the performance, we tried the automatic loop unrolling options offered by GCC. We tried each and all combinations of the options mentioned in Table \ref{loop-unrolling}. 
 
-Figure \ref{fig:timing-loops1} shows a comparison between the performance of the Basis configuration and that of each loop optimization flag. \textit{-ftree-loop-im} and \textit{-ftree-loop-linear} do not improve the performance in our case. This was expected for  \textit{-ftree-loop-im} as our code does not have loop invariant code inside loops. Using the \text{-funroll-loops} results in a significant performance improvement because it performs automatic unrolling for some loops that we did not have a chance to unroll manually. 
+Figure \ref{fig:timing-loops1} shows a comparison between the performance of the Basis configuration and that of each loop optimization flag. \textit{-ftree-loop-im} and \textit{-ftree-loop-linear} do not improve the performance in our case. This was expected for  \textit{-ftree-loop-im} as our code does not have loop invariant code inside loops. Using the \textit{-funroll-loops} results in a significant performance improvement because it performs automatic unrolling for some loops that we did not have a chance to unroll manually. 
 
-Figure \ref{fig:timing-loops2} shows a comparison between the \textit{-funroll-loops} flag and all combinations of the loop optimization flags. The combination of \textit{-ftree-loop-im} and \textit{-ftree-loop-linear} more or less has the same performance as that of the Basis configuration. All the other combinations improve the performance significantly and their performances are very close to each other. What is interesting is that \textit{-funroll-loops} is part of all highly performed combinations and its own performance is more or less on par with those combinations. This probably means that most of performance boost is thanks to \textit{-funroll-loops} and other flags have marginal contributions.
+Figure \ref{fig:timing-loops2} shows a comparison between the \textit{-funroll-loops} flag and all combinations of the loop optimization flags. The combination of \textit{-ftree-loop-im} and \textit{-ftree-loop-linear} more or less has the same performance as that of the Basis configuration. All the other combinations improve the performance significantly and their performances are very close to each other. What is interesting is that \textit{-funroll-loops} is part of all highly performed combinations and its performance by itself is more or less on par with those combinations. This probably means that most of the performance boost is thanks to \textit{-funroll-loops} and other flags have marginal contributions.
 
 
 \begin{table}
@@ -277,7 +280,7 @@ Figure \ref{fig:timing-loops2} shows a comparison between the \textit{-funroll-l
 
   \begin{figure}[h]
     \centering
-    \includegraphics[width=.7\textwidth]{timing-loops-vs-basis.pdf}
+    \includegraphics[width=.7\textwidth]{timing-loops-vs-basis-updated.pdf}
     \caption{MFLOPS/s vs Matrix Size: Comparing the basis configuration with each of the loop optimization flags.}
     \label{fig:timing-loops1}
   \end{figure}
@@ -285,7 +288,7 @@ Figure \ref{fig:timing-loops2} shows a comparison between the \textit{-funroll-l
     \begin{figure}[h]
     \centering
     \includegraphics[width=14cm,height=6cm]{timing-loopunroll-vs-combos.pdf}
-    \caption{MFLOPS/s vs Matrix Size: Comparing different combinations of loop optimization flags with the Basis configuration and \textit{-funroll-loops}.}
+    \caption{MFLOPS/s vs Matrix Size: Comparing different combinations of loop optimization flags with the Basis configuration and \textit{-funroll-loops} by itself.}
     \label{fig:timing-loops2}
   \end{figure}
 
@@ -295,14 +298,14 @@ Figure \ref{fig:timing-loops2} shows a comparison between the \textit{-funroll-l
 The {\bf restrict} keyword is a type qualifier for pointers and is a part of C99 standard. It informs the compiler that the object designated by the pointer cannot be accessed by any other pointer. In other words, the same memory location cannot be pointed to by different pointers. This elimination of memory aliasing helps the compiler to do a better job at loop unrolling.
 
 Since the pointers designating our matrices are non-aliasing, we can declare them as restricted pointers so the compiler can exploit this for automatic unrolling. 
-Hence, we tried the restrict keyboard combined with the two loop unrolling options considered in the previous section, i.e. \textit{-funroll-loops} and \textit{-ftree-loops-linear}. 
+Hence, we tried the restrict keyboard combined with the two loop unrolling options considered in the previous section, i.e. \textit{-funroll-loops} and \textit{-ftree-loops-linear}. You can see the implementation in $dgemm_mine_restrict.c$.
 
-The outcome can be Fig \ref{fig:restrict}. It turns out that using this keyword not only does not improve the performance but degrades it. The \textit{-funroll-loops} alone without the restrict keyword does a better job that all the combinations considered here. Hence, we will not consider this flag in our analysis for finding the optimal combination of optimization flags.
+The outcome can be Fig \ref{fig:restrict}. It turns out that using this keyword does not improve the performance and at most reproduces that of \textit{-funroll-loops} by itself. Hence, we will not consider this flag in our analysis for finding the optimal combination of optimization flags.
 
 
     \begin{figure}[h]
     \centering
-    \includegraphics[width=14cm,height=6cm]{timing-loops-restrict.pdf}
+    \includegraphics[width=14cm,height=6cm]{timing-restrict-final.pdf}
     \caption{MFLOPS/s vs Matrix Size: Different combinations of loop unrolling flags with the restrict keyword.}
     \label{fig:restrict}
   \end{figure}
@@ -321,9 +324,9 @@ The \textit{-ffast-math} option includes most of GCC flags for fast floating poi
 
 \subsection{Architecture Specific Flags}
 
-Different CPUs have different capabilities, support different instruction sets, and have different ways of executing code. \textit{-march} and \textit{-mtune} are the most common GCC flags for this purpose. On \textit{x86} and \text{x86-64} CPUs, which includes the Xeon E5504 cores on our instructional nodes, \textit{-march} will generate code specifically for that CPU using all its available instruction sets and the correct ABI. Also, including \textit{-march} implies \textit{-mtune}. So, unless we are not aware of the processor family we are using, having \textit{-mtune} must be enough. 
+Different CPUs have different capabilities, support different instruction sets, and have different ways of executing code. \textit{-march} and \textit{-mtune} are the most common GCC flags for this purpose. On \textit{x86} and \text{x86-64} CPUs, which includes the Xeon E5504 cores on our instructional nodes, \textit{-march} will generate code specifically for that CPU using all its available instruction sets and the correct ABI. Also, including \textit{-march} implies \textit{-mtune}. So, unless we are not aware of the processor family we are using, having \textit{-march} must be enough. 
 
-We have GCC 4.8.2 on the cluster. The relevant \textit{-mtune} options on this version that are relevant to our processor are described in Table \ref{tab:arch-march}. Our processor, Xeon E5504, has the Nehalem-EP microarchitecture. The newer Intel Corei7 processors are mostly based on this architecture. That is why \textit{corei7} seems to be the most relevant option. However, GCC is not that consistent about how it treats architecture specific flags. That is why we also considered the \textit{core2} and \textit{native} options. The reason for \textit{core2} is that Nehalem-EP is a successor of the Core microstructure and we considered \textit{native} because it lets the compiler to determine the architecture by itself. 
+We have GCC 4.8.2 on the cluster. The relevant \textit{-march} options on this version that are relevant to our processor are described in Table \ref{tab:arch-march}. Our processor, Xeon E5504, has the Nehalem-EP microarchitecture.  In fact, the first Nehalem-EP processor that came out was Core i7. There are core i7 processors that are based on this architecture and are similar to ours. That is why \textit{corei7} seems to be the most relevant option. However, GCC is not that consistent about how it treats architecture specific flags. That is why we also considered the \textit{core2} and \textit{native} options. The reason for \textit{core2} is that Nehalem-EP is a successor of the Core microstructure and we considered \textit{native} because it lets the compiler to determine the architecture by itself. 
 
 Figure \ref{fig:timing-march} shows the performance obtained by each case compared to the basis configuration.The three options do not significantly affect the performance, although \textit{native} seems to perform better for larger sizes. This is probably because our kernel is already an SSE code and hence is not affected much by architecture specific flags. 
 
@@ -347,13 +350,13 @@ Although the architecture specific flags do not seem to improve the performance 
   \begin{figure}[h]
     \centering
     \includegraphics[width=.7\textwidth]{timing-march.pdf}
-    \caption{MFLOPS/s vs Matrix Size for \textit{-march=corei7}.}
+    \caption{MFLOPS/s vs Matrix Size for the architecture specific flags.}
     \label{fig:timing-march}
   \end{figure}
  
-\subsection{Combining Flags}
+\subsection{Combining Flags and Picking the Optimal Configuration}
 
-We start our analysis by considering all combinations of those flags that that either improved the performance in our observations or could potentially do so by being combined with other flags. For the loop optimization flags, we chose the 4 combinations that involved \textit{-funroll-loops} in them as they all improved the performance at a similar level, c.f. Fig \ref{fig:timing-loops2}. As for architecture specific flags, we only considered \textit{-march = native} because, as shown in Fig \ref{fig:timing-march}, the three flags result in more or less the same performance.  Therefore, the combinations we considered were the following:
+We start our analysis by considering all combinations of those flags that either improved the performance in our observations or could potentially do so by being combined with other flags. For the loop optimization flags, we chose the 4 combinations that involved \textit{-funroll-loops} in them as they all improved the performance at a similar level, c.f. Fig \ref{fig:timing-loops2}. As for architecture specific flags, we only considered \textit{-march = native} because, as shown in Fig \ref{fig:timing-march}, the three flags result in more or less the same performance.  Therefore, the combinations we considered were the following:
 
 \begin{enumerate}
 
@@ -369,7 +372,7 @@ We start our analysis by considering all combinations of those flags that that e
 
 \end{enumerate}
 
-Note that \textit{O3} and \textit{-msse4.2} constitute our Basis configuration which all the other include. The reason for \textit{O3} is that our observations showed that, when used with the above flags, it results in better performance than \textit{O1} and \textit{O2}. We used \textit{-msse4.2} in our Basis configuration because it is the fastest SSE flag for our architecture. 
+Note that \textit{O3} and \textit{-msse4.2} constitute our Basis configuration which all the other include. The reason for \textit{O3} is that our observations showed that, when used with the above flags, it results in better performance than that obtained by \textit{O1} and \textit{O2}. We used \textit{-msse4.2} in our Basis configuration because it is the fastest SSE flag for our architecture. 
 
  
 Fig \ref{fig:combo-analysis1} shows the the outcome for all of the above combinations. The 3rd, 4th and 5th combinations clearly do a better job. Their outcomes are shown in Fig \ref{fig:combo-analysis2}. It can be seen that the 3rd  and 4th combinations perform slightly better and have more or less the same performance. The better performance of these combinations compared to the 5th one is thanks to the architecture specific flag \textit{-march = native} because, as mentioned in the Loop Optimization section, the \textit{-ftree-loops-im} flag has a significantly smaller contribution compared to \textit{-funroll-loops}. Hence, we pick the 4th combination namely
@@ -379,7 +382,7 @@ Fig \ref{fig:combo-analysis1} shows the the outcome for all of the above combina
 \item OPTFLAGS = -O3 -msse4.2 -funroll-loops -march=native
 
 \end{itemize}
-
+%
 as our optimal configuration of compiler optimization flags. Fig \ref{fig:final-vs-blas} shows the performance of our code in comparison with those of Blas and the native code under the same configuration.
  
   \begin{figure}[h]
@@ -403,7 +406,7 @@ as our optimal configuration of compiler optimization flags. Fig \ref{fig:final-
     \label{fig:final-vs-blas}
   \end{figure}
 
-    \subsection{Memory Usage}
+    \section{Memory Usage}
 
     One thing we tried was to break up the P by 2 and 2 by P matrices into smaller block. Theoretically, since the size of a double is 8 bytes, we need to fit
     $2(2P)*8 + 4 = 32P + 4$ bytes into the cache. While the level 1 cache of the educational nodes are quite low, it seems to not matter from the plots (our maximum
@@ -481,7 +484,7 @@ Description:	System CBLAS dgemm.
     It's quite interesting to see that such small differences in the miss rates will result in such a large cut in performance
     from the BLAS package.
 
-    \subsection{New Kernel}
+    \section{New Kernel}
 
 While benchmarking matrix multiplication based on Bindel's kernel we also attempted to write a faster one, 
 focusing on multiplying 8x8 matrices (saved in mm\_kernel/kdgemm\_doublerainbow.c). The approach was fairly straightforward: starting with a 
