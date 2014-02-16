@@ -159,7 +159,7 @@
 %----------------------------------------------------------------------------------------
 
 \begin{document}
-  Our first step to optimizing the program was to jump directly into SSE by using the example script already written in Bitbucket.
+  Our first step to optimizing the program was to jump directly into SSE by using the example script already written in Bitbucket under the SSE wiki page.
   The hope was that the SSE code was a fast enough kernel that we can build a good multiplier around it; indeed, it an immediate
   speed-up was noticed! It approximately doubled our naive multiplication. See figure~\ref{fig:initial}.
 
@@ -172,27 +172,29 @@
 
   What the code does is fairly basic:
   \begin{enumerate}
-    \item Intialize arrays At, Bt.
-    \item Takes in matrix A, B and copies them into At, Bt such that we have memory layout of 2 by P blocks in A and P by 2 blocks in B.
-    \item Loop over the blocks in A and B and multiply, adding the 2 by 2 matrix from the output into the C matrix.
+    \item Intialize arrays At, Bt of the same size as arguments A and B.
+    \item Takes in matrix A, B and copies them into At, Bt such that we have memory layout of 2 by P blocks in At and P by 2 blocks in Bt.
+      This is the layout that the 2P2 SSE code requires.
+    \item Loop over the blocks in At and Bt and multiply with Dr. Bindel's 2P2 code, adding the 2 by 2 matrix from the output into the C matrix.
   \end{enumerate}
 
   We originally compiled this SSE code via the Intel compiler, but weirdly we found that compiling it with the GCC compiler results in a roughly
   33\% speedup over the Intel compiler! We're actually not sure why, but various flags of the ICC doesn't seem to coax the same performance
   out of the code.
 
-  This was all tested on even sizes intially, as there was no need to pad the matrices with anything. The odd cases
+  This was all tested on even sizes intially, as no additional processing was needed. The odd cases
   are handled in the natural way, which was to pad a row and column and take the slight hit to the performance.
   When implemented, our performance was still pretty decent. See figure~\ref{fig:odd}.
 
   \begin{figure}[h]
     \centering
     \includegraphics[width=.7\textwidth]{odd.pdf}
-    \caption{After adding the odd cases in and using GCC instead of icc(note the ``blocked'' line is ours once again).}
+    \caption{After adding the odd cases in and using GCC instead of icc (note the ``blocked'' line is ours once again).}
     \label{fig:odd}
   \end{figure}
 
-  The next step to optimizing this was to play with the flags and use tiny code tricks.
+  The next step to optimizing this particular kernel was to play with the flags and use tiny code tricks. The other
+  way to increase the speed of matrix multiply was to play with another kernel (see the last section).
 
   \subsection{Tricks}
     One trick that we played with was to do some loop reordering. In our main block, we have the following
@@ -209,7 +211,7 @@
     \end{lstlisting}
 
     We noted that flipping bi and bj's loop order hurts the performance a lot. For example, at the far end of the spectrum of the sizes
-    the different is quite noticable. See table~\ref{tab:looporder}, so we determined that 
+    the different is quite noticable. See table~\ref{tab:looporder}, so we determined that that our current order was good.
 
     \begin{table}
       \centering
@@ -223,9 +225,9 @@
       \label{tab:looporder}
     \end{table}
 
-    Loop reordering was also applied to the copy commands:
+    Loop reordering was also applied to the function to copy matrix A, B into At, Bt:
     \begin{lstlisting}
-    if (odd == 0) {
+    if (odd == 0) { // For A to At
       for (int j = 0; j<n; j++) {
         for (int i = 0; i < m; i++) {
           At[i*n*2 + 2*j]     = A[j*n + i*2];
@@ -406,7 +408,7 @@ as our optimal configuration of compiler optimization flags. Fig \ref{fig:final-
     \subsection{Memory Usage}
 
     One thing we tried was to break up the P by 2 and 2 by P matrices into smaller block. Theoretically, since the size of a double is 8 bytes, we need to fit
-    $2(2P)*8 + 4 = 32P + 4$ bytes into the cache. While the level 1 cache of the educational nodes are quite low, it seems to not matter from the plots (our maximum
+    $2(2P)*8 + 4 = 32P + 4$ bytes into the cache. While the sizes of the level 1 cache of the educational nodes are quite low, it seems to not matter from the plots (our maximum
     size that we can fit in the L1 cache is $P=128$). If we look at the level 2 cache, our array size can go up to 1024 theoretically, which (theoretically) shouldn't
     impede us.
 
