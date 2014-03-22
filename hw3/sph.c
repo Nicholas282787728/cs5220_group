@@ -79,12 +79,14 @@ sim_state_t* place_particles(sim_param_t* param,
                 if (indicatef(x,y,z)) {
                     vec3_set(s->part[p].x, x, y, z);
                     vec3_set(s->part[p].v, 0, 0, 0);
+                    s->part[p].ind = p; // Indexing the particles
+
                     ++p;
                 }
             }
         }
     }
-    return s;    
+    return s;
 }
 
 /*@T
@@ -166,14 +168,20 @@ int main(int argc, char** argv)
     leapfrog_start(state, dt);
     check_state(state);
     for (int frame = 1; frame < nframes; ++frame) {
-        for (int i = 0; i < npframe; ++i) {
-            compute_accel(state, &params);
-            leapfrog_step(state, dt);
-            check_state(state);
-        }
-        printf("Frame: %d of %d - %2.1f%%\n",frame, nframes, 
-               100*(float)frame/nframes);
-        write_frame_data(fp, n, state, NULL);
+
+      // We sort according to Z-Morton to ensure locality
+      if (frame % 10 == 0) {
+        qsort(state->part, n, sizeof(particle_t), compPart);
+      }
+
+      for (int i = 0; i < npframe; ++i) {
+        compute_accel(state, &params);
+        leapfrog_step(state, dt);
+        check_state(state);
+      }
+      printf("Frame: %d of %d - %2.1f%%\n",frame, nframes, 
+          100*(float)frame/nframes);
+      write_frame_data(fp, n, state, NULL);
     }
     double t_end = omp_get_wtime();
     printf("Ran in %g seconds\n", t_end-t_start);

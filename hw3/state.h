@@ -18,6 +18,9 @@ typedef struct particle_t {
     float v[3];        /* Particle velocities (full step) */
     float vh[3];       /* Particle velocities (half step) */
     float a[3];        /* Particle accelerations */
+    unsigned hind;           /* Particle's Z-Morton index in hash */
+    int ind;           /* Particle index for not double forcing */
+
     struct particle_t* next;  /* List link for spatial hashing */
 } particle_t;
 
@@ -30,6 +33,8 @@ typedef struct sim_state_t {
 
 sim_state_t* alloc_state(int n);
 void free_state(sim_state_t* s);
+int compPart(const void *a, const void *b);
+
 
 /*@q*/
 #endif /* STATE_H */

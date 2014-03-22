@@ -4,7 +4,7 @@
 #include <math.h>
 #include <assert.h>
 #include <stdio.h>
-
+#include <omp.h>
 #include "vec3.h"
 #include "zmorton.h"
 
@@ -66,7 +66,7 @@ void compute_density(sim_state_t* s, sim_param_t* params)
 
     for (int i = 0; i < n; ++i) {
       particle_t* pi = s->part+i;
-      pi->rho += 4 * s->mass / M_PI / h3;
+      pi->rho += ( 315.0/64.0/M_PI ) * s->mass / h3;
 
       // Retrieve neighbors
       particle_neighborhood(neighborBucket, pi, h);
@@ -75,8 +75,7 @@ void compute_density(sim_state_t* s, sim_param_t* params)
       particle_t* pj;
 
       for (int j = 0; j < 27; j++) {
-        pj = hash[neighborBucket[j]];
-        //printf("Point: %p\n", pj);
+        pj = hash[neighborBucket[j]]; // Retrieve first in linked list
         if (pj != NULL) { // Go through linked list
           do {
             if (pi != pj) {
@@ -91,7 +90,7 @@ void compute_density(sim_state_t* s, sim_param_t* params)
 #else
     for (int i = 0; i < n; ++i) {
         particle_t* pi = s->part+i;
-        pi->rho += 4 * s->mass / M_PI / h3;
+        pi->rho += ( 315.0/64.0/M_PI ) * s->mass / h3;
         for (int j = i+1; j < n; ++j) {
             particle_t* pj = s->part+j;
             update_density(pi, pj, h2, C);
@@ -144,6 +143,34 @@ void update_forces(particle_t* pi, particle_t* pj, float h2,
     }
 }
 
+// Paralle version of update_forces
+inline
+void update_forcesP(particle_t* pi, particle_t* pj, float* holder, float h2,
+                   float rho0, float C0, float Cp, float Cv)
+{
+    float dx[3];
+    vec3_diff(dx, pi->x, pj->x);
+    float r2 = vec3_len2(dx);
+    if (r2 < h2) {
+        const float rhoi = pi->rho;
+        const float rhoj = pj->rho;
+        float q = sqrt(r2/h2);
+        float u = 1-q;
+        float w0 = C0 * u/rhoi/rhoj;
+        float wp = w0 * Cp * (rhoi+rhoj-2*rho0) * u/q;
+        float wv = w0 * Cv;
+        float dv[3];
+        vec3_diff(dv, pi->v, pj->v);
+
+        // Equal and opposite pressure forces
+        vec3_saxpy(&holder[3*(pi->ind)],  wp, dx);
+        vec3_saxpy(&holder[3*(pj->ind)], -wp, dx);
+        
+        // Equal and opposite viscosity forces
+        vec3_saxpy(&holder[3*(pi->ind)],  wv, dv);
+        vec3_saxpy(&holder[3*(pj->ind)], -wv, dv);
+    }
+}
 void compute_accel(sim_state_t* state, sim_param_t* params)
 {
     // Unpack basic parameters
@@ -180,6 +207,7 @@ void compute_accel(sim_state_t* state, sim_param_t* params)
     // Create small stack array of size what we want
     unsigned neighborBucket[27];
 
+    
     for (int i = 0; i < n; ++i) {
       particle_t* pi = p+i;
 
@@ -193,7 +221,7 @@ void compute_accel(sim_state_t* state, sim_param_t* params)
         pj = hash[neighborBucket[j]];
         if (pj != NULL) { // Go through linked list
           do {
-            if (pi != pj) { // Don't want to do crazy 
+            if (pi->ind < pj->ind) { // Don't want to do crazy 
               update_forces(pi, pj, h2, rho0, C0, Cp, Cv);
             }
             pj = pj->next;
@@ -201,6 +229,52 @@ void compute_accel(sim_state_t* state, sim_param_t* params)
         }
       }
     }
+    // Ignore the code below for now, was trying some parallel stuff
+/*
+ *    int tid, nthreads;
+ *#pragma omp parallel 
+ *    {
+ *      tid = omp_get_thread_num();
+ *      nthreads = omp_get_num_threads();
+ *      float forceHolder[3*n]; // might be quite large...
+ *
+ *#pragma omp for // Might have to physically alter such that loops over the right particles
+ *      for (int i = 0; i < n; ++i) {
+ *        particle_t* pi = p+i;
+ *
+ *        // Retrieve neighbors
+ *        particle_neighborhood(neighborBucket, pi, h);
+ *
+ *        // Loop through neighbors
+ *        particle_t* pj;
+ *
+ *        for (int j = 0; j < 27; j++) {
+ *          pj = hash[neighborBucket[j]];
+ *          if (pj != NULL) { // Go through linked list
+ *            do {
+ *              if (pi->ind < pj->ind) { // Don't want to do crazy and interact with yourself
+ *                update_forcesP(pi, pj, forceHolder, h2, rho0, C0, Cp, Cv);
+ *              }
+ *              pj = pj->next;
+ *            } while (pj != NULL);
+ *          }
+ *        }
+ *      }
+ *
+ *      // By now, the forceHolder will hold all the forces... now need to aggregate
+ *      // And since OpenMP in C can't reduce over arrays... we update particles directly
+ *
+ * #pragma omp critical 
+ *       {
+ *         for (int i = 0; i < n; i++) {
+ *          vec3_saxpy(p[i].a, 1, &forceHolder[p[i].ind]);
+ *         }
+ *       }
+ * 
+ *
+ *    }
+ */
+
 #else
     for (int i = 0; i < n; ++i) {
         particle_t* pi = p+i;
@@ -209,6 +283,7 @@ void compute_accel(sim_state_t* state, sim_param_t* params)
             update_forces(pi, pj, h2, rho0, C0, Cp, Cv);
         }
     }
+
 #endif
 }
 
