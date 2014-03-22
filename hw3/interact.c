@@ -78,7 +78,7 @@ void compute_density(sim_state_t* s, sim_param_t* params)
         pj = hash[neighborBucket[j]]; // Retrieve first in linked list
         if (pj != NULL) { // Go through linked list
           do {
-            if (pi->ind < pj->ind) {
+            if (pi != pj) {
               update_density(pi,pj, h2, C);
             }
             pj = pj->next;
