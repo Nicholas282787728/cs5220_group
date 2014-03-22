@@ -34,9 +34,12 @@ unsigned particle_bucket(particle_t* p, float h)
 // Note: We check ALL buckets, even those that are weird... which hashing should take care of
 void particle_neighborhood(unsigned* buckets, particle_t* p, float h)
 {
-  unsigned ix = p->x[0]/h;
-  unsigned iy = p->x[1]/h;
-  unsigned iz = p->x[2]/h;
+//  unsigned ix = p->x[0]/h;
+//  unsigned iy = p->x[1]/h;
+//  unsigned iz = p->x[2]/h;
+  unsigned ix = (p->x[0]/h + 16);
+  unsigned iy = (p->x[1]/h + 16);
+  unsigned iz = (p->x[2]/h + 16);
   unsigned x,y,z;
 
   int counter = 0;
