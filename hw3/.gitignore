@@ -1,5 +1,4 @@
 *.o
-/Makefile
 /Makefile.in
 /Makefile.in.linux
 /Makefile.in.mac

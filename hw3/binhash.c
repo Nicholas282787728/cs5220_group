@@ -59,6 +59,7 @@ void particle_neighborhood(unsigned* buckets, particle_t* p, float h)
 
 void hash_particles(sim_state_t* s, float h)
 {
+
   // Unpack particles and hash
   particle_t* p = s->part;
   particle_t** hash = s->hash;
@@ -78,4 +79,25 @@ void hash_particles(sim_state_t* s, float h)
     p[i].hind = b;
     hash[b] = &p[i];
   }
+
+}
+
+void hash_particles_proc(particle_t* p, particle_t** hash, int n, float h) {
+
+  // First clear hashtable (TODO: Make this faster)
+  for (int i = 0; i < HASH_SIZE; i++) {
+    hash[i] = NULL;
+  }
+
+  // Loop through particles to hash
+  for (int i = 0; i < n; i++) {
+    // Hash using Z Morton
+    int b = particle_bucket(&p[i], h);
+
+    // Add particle to the start of the list of bin b
+    p[i].next = hash[b];
+    p[i].hind = b;
+    hash[b] = &p[i];
+  }
+
 }

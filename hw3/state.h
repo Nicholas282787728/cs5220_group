@@ -30,6 +30,8 @@ typedef struct sim_state_t {
     float mass;           /* Particle mass          */
     particle_t* part;     /* Particles              */
     particle_t** hash;    /* Hash table             */
+    particle_t** proc_part;
+    particle_t*** proc_hash;
 } sim_state_t;
 
 sim_state_t* alloc_state(int n);

@@ -1,0 +1,6 @@
+CC       = icc
+#CFLAGS   = -std=gnu99 -Wall -g -fopenmp -parallel-source-info=2 -debug all -inline-level=1
+CFLAGS   = -std=gnu99 -Wall -g -fopenmp -parallel-source-info=2 -debug all
+#OPTFLAGS = -O0
+OPTFLAGS = -O3
+LIBS     = -lm
