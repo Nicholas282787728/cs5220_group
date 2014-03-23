@@ -44,6 +44,7 @@ inline float vec3_dist2(float* a, float* b)
     __m128 ar = _mm_load_ps(a);
     __m128 br = _mm_load_ps(b);
     __m128 cr = _mm_sub_ps(ar, br);
+    //http://fastcpp.blogspot.com/2012/02/calculating-length-of-3d-vector-using.html
     return _mm_cvtss_f32(_mm_dp_ps(cr, cr, 0x7F));
 }
 
