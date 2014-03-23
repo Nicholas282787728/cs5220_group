@@ -1,6 +1,8 @@
 #ifndef VEC3_H
 #define VEC3_H
 
+#include "nmmintrin.h"
+
 /*@T
  * \subsection{Vector operations}
  * 
@@ -23,43 +25,49 @@ inline void vec3_copy(float* result, float* v)
 
 inline void vec3_diff(float* result, float* a, float* b)
 {
-    result[0] = a[0]-b[0];
-    result[1] = a[1]-b[1];
-    result[2] = a[2]-b[2];
+  __m128 ar = _mm_load_ps(a);
+  __m128 br = _mm_load_ps(b);
+  __m128 cr = _mm_sub_ps(ar, br);
+  _mm_store_ps(result, cr);
 }
 
 inline void vec3_scale(float* result, float alpha, float* v)
 {
-    result[0] = alpha*v[0];
-    result[1] = alpha*v[1];
-    result[2] = alpha*v[2];
+    __m128 alphar = _mm_set1_ps(alpha);
+    __m128 vr = _mm_load_ps(v);
+    __m128 resultr = _mm_mul_ps(vr, alphar);
+    _mm_store_ps(result, resultr);
 }
 
 inline float vec3_dist2(float* a, float* b)
 {
-    float dx = a[0]-b[0];
-    float dy = a[1]-b[1];
-    float dz = a[2]-b[2];
-    return dx*dx + dy*dy + dz*dz;
+    __m128 ar = _mm_load_ps(a);
+    __m128 br = _mm_load_ps(b);
+    __m128 cr = _mm_sub_ps(ar, br);
+    return _mm_cvtss_f32(_mm_dp_ps(cr, cr, 0x7F));
 }
 
 inline float vec3_len2(float* a)
 {
-    return a[0]*a[0] + a[1]*a[1] + a[2]*a[2];
+    __m128 ar = _mm_load_ps(a);
+    return _mm_cvtss_f32(_mm_dp_ps(ar, ar, 0x7F));
 }
 
 inline void vec3_saxpy(float* result, float alpha, float* v)
 {
-    result[0] += alpha*v[0];
-    result[1] += alpha*v[1];
-    result[2] += alpha*v[2];
+    __m128 resultr = _mm_load_ps(result);
+    __m128 alphar = _mm_set1_ps(alpha);
+    __m128 vr = _mm_load_ps(v);
+    resultr = _mm_add_ps(resultr, _mm_mul_ps(vr, alphar));
+    _mm_store_ps(result, resultr);
 }
 
 inline void vec3_scalev(float* result, float alpha)
 {
-    result[0] *= alpha;
-    result[1] *= alpha;
-    result[2] *= alpha;
+    __m128 resultr = _mm_load_ps(result);
+    __m128 alphar = _mm_set1_ps(alpha);
+    resultr = _mm_mul_ps(resultr, alphar);
+    _mm_store_ps(result, resultr);
 }
 
 /*@q*/

@@ -148,7 +148,7 @@ inline
 void update_forcesP(particle_t* pi, particle_t* pj, float* holder, float h2,
                    float rho0, float C0, float Cp, float Cv)
 {
-    float dx[3];
+    float dx[4] __attribute__((aligned(16)));
     vec3_diff(dx, pi->x, pj->x);
     float r2 = vec3_len2(dx);
     if (r2 < h2) {
@@ -159,7 +159,7 @@ void update_forcesP(particle_t* pi, particle_t* pj, float* holder, float h2,
         float w0 = C0 * u/rhoi/rhoj;
         float wp = w0 * Cp * (rhoi+rhoj-2*rho0) * u/q;
         float wv = w0 * Cv;
-        float dv[3];
+        float dv[4] __attribute__((aligned(16)));
         vec3_diff(dv, pi->v, pj->v);
 
         // Equal and opposite pressure forces

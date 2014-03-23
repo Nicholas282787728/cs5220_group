@@ -2,6 +2,7 @@
 #define STATE_H
 
 #define STATE_HASH_SIZE 4096
+#define MAX_PROC 8
 
 /*@T
  * \section{System state}
@@ -14,10 +15,10 @@
  *@c*/
 typedef struct particle_t {
     float rho;         /* Particle density   */
-    float x[3];        /* Particle positions */
-    float v[3];        /* Particle velocities (full step) */
-    float vh[3];       /* Particle velocities (half step) */
-    float a[3];        /* Particle accelerations */
+    float x[4] __attribute__((aligned(16)));        /* Particle positions */
+    float v[4] __attribute__((aligned(16)));        /* Particle velocities (full step) */
+    float vh[4] __attribute__((aligned(16)));       /* Particle velocities (half step) */
+    float a[4] __attribute__((aligned(16)));        /* Particle accelerations */
     unsigned hind;           /* Particle's Z-Morton index in hash */
     int ind;           /* Particle index for not double forcing */
 
