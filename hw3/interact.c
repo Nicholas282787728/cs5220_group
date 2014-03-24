@@ -78,7 +78,7 @@ void compute_density(sim_state_t* s, sim_param_t* params)
         pj = hash[neighborBucket[j]]; // Retrieve first in linked list
         if (pj != NULL) { // Go through linked list
           do {
-            if (pi != pj) {
+            if (pi->ind < pj->ind) {
               update_density(pi,pj, h2, C);
             }
             pj = pj->next;
@@ -207,6 +207,7 @@ void compute_accel(sim_state_t* state, sim_param_t* params)
     // Create small stack array of size what we want
     unsigned neighborBucket[27];
 
+    float forceHolder[3*n];
     
     for (int i = 0; i < n; ++i) {
       particle_t* pi = p+i;
@@ -229,52 +230,6 @@ void compute_accel(sim_state_t* state, sim_param_t* params)
         }
       }
     }
-    // Ignore the code below for now, was trying some parallel stuff
-/*
- *    int tid, nthreads;
- *#pragma omp parallel 
- *    {
- *      tid = omp_get_thread_num();
- *      nthreads = omp_get_num_threads();
- *      float forceHolder[3*n]; // might be quite large...
- *
- *#pragma omp for // Might have to physically alter such that loops over the right particles
- *      for (int i = 0; i < n; ++i) {
- *        particle_t* pi = p+i;
- *
- *        // Retrieve neighbors
- *        particle_neighborhood(neighborBucket, pi, h);
- *
- *        // Loop through neighbors
- *        particle_t* pj;
- *
- *        for (int j = 0; j < 27; j++) {
- *          pj = hash[neighborBucket[j]];
- *          if (pj != NULL) { // Go through linked list
- *            do {
- *              if (pi->ind < pj->ind) { // Don't want to do crazy and interact with yourself
- *                update_forcesP(pi, pj, forceHolder, h2, rho0, C0, Cp, Cv);
- *              }
- *              pj = pj->next;
- *            } while (pj != NULL);
- *          }
- *        }
- *      }
- *
- *      // By now, the forceHolder will hold all the forces... now need to aggregate
- *      // And since OpenMP in C can't reduce over arrays... we update particles directly
- *
- * #pragma omp critical 
- *       {
- *         for (int i = 0; i < n; i++) {
- *          vec3_saxpy(p[i].a, 1, &forceHolder[p[i].ind]);
- *         }
- *       }
- * 
- *
- *    }
- */
-
 #else
     for (int i = 0; i < n; ++i) {
         particle_t* pi = p+i;
