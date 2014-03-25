@@ -31,7 +31,7 @@
  *@c*/
 
 inline
-void update_density(particle_t* pi, particle_t* pj, float h2, float C)
+void update_density(particle_t* restrict pi, particle_t* restrict pj, float h2, float C)
 {
     float r2 = vec3_dist2(pi->x, pj->x);
     float z  = h2-r2;
@@ -42,7 +42,7 @@ void update_density(particle_t* pi, particle_t* pj, float h2, float C)
     }
 }
 
-void compute_density(sim_state_t* s, sim_param_t* params)
+void compute_density(sim_state_t* restrict s, sim_param_t* restrict params)
 {
     int n = s->n;
     particle_t* p = s->part;
@@ -88,7 +88,7 @@ void compute_density(sim_state_t* s, sim_param_t* params)
 
 }
 
-void compute_density_proc(int thread_start, int thread_end, sim_state_t* s, sim_param_t* params)
+void compute_density_proc(int thread_start, int thread_end, sim_state_t* restrict s, sim_param_t* restrict params)
 {
     particle_t* p = s->part;
     particle_t** hash = s->hash;
@@ -144,8 +144,8 @@ void compute_density_proc(int thread_start, int thread_end, sim_state_t* s, sim_
  * but it does a very expensive brute force search for neighbors.
  *@c*/
 
-//inline
-void update_forces(particle_t* pi, particle_t* pj, float h2,
+inline
+void update_forces(particle_t* restrict pi, particle_t* restrict pj, float h2,
                    float rho0, float C0, float Cp, float Cv)
 {
 
@@ -203,7 +203,7 @@ void compute_accel(sim_state_t* state, sim_param_t* params)
     // Rehash the particles
     hash_particles(state, h);
 
-    #pragma omp parallel default(none) shared(state, hash, params, p, n, C0, Cp, Cv)
+    #pragma omp parallel default(none) firstprivate(state, hash, params, p, n, C0, Cp, Cv)
     {
 
       int nthreads = omp_get_num_threads();
