@@ -8,13 +8,6 @@ sim_state_t* alloc_state(int n)
     s->n     = n;
     s->part  = (particle_t*) calloc(n, sizeof(particle_t));
     s->hash  = (particle_t**) calloc(HASH_SIZE, sizeof(particle_t*));
-    s->proc_part = (particle_t**) calloc(MAX_PROC, sizeof(particle_t*));
-    s->proc_hash = (particle_t***) calloc(MAX_PROC, sizeof(particle_t**));
-
-    for (int i = 0; i < MAX_PROC; i++) {
-      s->proc_part[i] = (particle_t*) calloc(n, sizeof(particle_t));
-      s->proc_hash[i] = (particle_t**) calloc(HASH_SIZE, sizeof(particle_t*));
-    }
 
     return s;
 }
@@ -23,12 +16,6 @@ void free_state(sim_state_t* s)
 {
     free(s->hash);
     free(s->part);
-    for (int i = 0; i < MAX_PROC; i++) {
-      free(s->proc_part[i]);
-      free(s->proc_hash[i]);
-    }
-    free(s->proc_part);
-    free(s->proc_hash);
     free(s);
 }
 
