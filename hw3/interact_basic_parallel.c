@@ -203,7 +203,7 @@ void compute_accel(sim_state_t* state, sim_param_t* params)
     // Rehash the particles
     hash_particles(state, h);
 
-    #pragma omp parallel default(none) shared(state, hash, params, p, n,  rho0, C0, Cp, Cv)
+    #pragma omp parallel default(none) shared(state, hash, params, p, n, C0, Cp, Cv)
     {
 
       int nthreads = omp_get_num_threads();
