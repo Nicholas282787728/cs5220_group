@@ -107,6 +107,8 @@ void normalize_mass(sim_state_t* s, proc_info* pInfo, sim_param_t* param)
 {
   if (pInfo->proc == 0) {
     s->mass = 1; // Set mass with only one processor
+  
+  //hash_particles_parallel(s, pInfo, param->h);
     hash_particles(s, param->h); // Hashing with only one processor
   }
 
@@ -165,6 +167,60 @@ void check_state(sim_state_t* s, proc_info* pInfo)
   }
 }
 
+
+/* Merge sorted lists A and B into list A.  A must have dim >= m+n */
+void merge(particle_t* A, particle_t* B, int m, int n) 
+{
+	int i=0, j=0, k=0;
+	int size = m+n;
+	particle_t *C = (particle_t *)malloc(size*sizeof(particle_t));
+	while (i < m && j < n) {
+            if (A[i].hind <= B[j].hind) C[k] = A[i++];
+            else C[k] = B[j++];
+            k++;
+	}
+	if (i < m) for (int p = i; p < m; p++,k++) C[k] = A[p];
+	else for (int p = j; p < n; p++,k++) C[k] = B[p];
+	for( i=0; i<size; i++ ) A[i] = C[i];
+	free(C);
+}
+
+void arraymerge(particle_t* a, int size, proc_info* pInfo)
+{
+        int N = pInfo->nproc; 
+        int index[N+1];
+        int i;
+                
+       // One could do this while in serial. The performance turned out to be
+       // the same as parallel. 
+       // #pragma omp single
+        {
+	while ( N>1 ) {
+
+        for( i=0; i<N; i++ ) index[i]=i*size/N; index[N]=size;
+
+      
+      // This is an alternative way of writing the parallel for below
+      /*if (pInfo->proc <N/2)
+       {
+
+           merge(a+index[pInfo->proc*2],a+index[pInfo->proc*2+1],index[pInfo->proc*2+1]
+                   -index[pInfo->proc*2],index[pInfo->proc*2+2]-index[pInfo->proc*2+1]); 
+       }
+       #pragma omp barrier*/
+            
+       #pragma omp for private(i)           
+	    for( i=0; i<N; i+=2 ) 
+            {
+                   merge(a+index[i],a+index[i+1],index[i+1]-index[i],index[i+2]-index[i+1]);
+            }
+	    N /= 2;
+	}
+        }
+}
+
+
+
 int main(int argc, char** argv)
 {
   sim_param_t params;
@@ -210,6 +266,7 @@ int main(int argc, char** argv)
     if (proc == 0) {
       hash_particles(globalState, params.h);
     }
+    //hash_particles_parallel(globalState, pInfo, params.h);
 #pragma omp barrier // Need the hashing to be done
 
     compute_accel(globalState, pInfo, &params);
@@ -223,16 +280,33 @@ int main(int argc, char** argv)
       // We sort according to Z-Morton to ensure locality, need to implement paralle qsort
       //
       // Commented out for sake of debugging for now
-      //if (frame % 10 == 0) {
-//#pragma omp single // Implied barrier
-        //qsort(globalState->part, n, sizeof(particle_t), compPart);
-      //}
+      if (frame % 10 == 0) {
+          
+         // Dividing into chunks of sorting each chunk
+         // This alone turned out to better than sorting the entire array
+         qsort(globalState->part+pInfo->beg, pInfo->end-pInfo->beg ,sizeof(particle_t),compPart);
+         
+         // Sorting the array consisting of sorted chunks
+         // This turned out to actually lower the performance. That's why
+         // I commented it.
+       /* #pragma omp barrier
+        if( pInfo->nproc >1 ) arraymerge(globalState->part, globalState->n, pInfo);
+        #pragma omp barrier*/
+          
+          // Serial version
+          /*#pragma omp single // Implied barrier
+          qsort(globalState->part, n, sizeof(particle_t), compPart);*/
+      }
+        
+        
+     // }
 
       for (int i = 0; i < npframe; ++i) {
 #pragma omp barrier
-        if (proc == 0) {
+       if (proc == 0) {
           hash_particles(globalState, params.h);
         }
+        //hash_particles_parallel(globalState, pInfo, params.h);  
 #pragma omp barrier
         compute_accel(globalState, pInfo, &params);
         leapfrog_step(globalState, pInfo, dt);
@@ -259,3 +333,4 @@ int main(int argc, char** argv)
 
   free_state(globalState);
 }
+

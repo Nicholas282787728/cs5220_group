@@ -88,3 +88,39 @@ void hash_particles(sim_state_t* s,float h)
 //printf("Reached end with processor %d\n", pInfo->proc );
 }
 
+// Bad idea
+/*
+void hash_particles_parallel(sim_state_t* s, proc_info* pInfo,float h)
+{
+
+  // Unpack particles and hash
+  particle_t* p = s->part;
+  particle_t** hash = s->hash;
+  int n = s->n;
+
+  //printf("In hashing! Processor %d\n", omp_get_thread_num());
+
+  // First clear hashtable (TODO: Make this faster)
+//#pragma omp parallel for
+  for (int i = 0; i < HASH_SIZE; i++)
+    hash[i] = NULL;
+
+  // Loop through particles to hash
+//#pragma omp parallel for
+//#pragma omp single // Debug this later
+ // #pragma omp parallel for 
+  for (int i = pInfo->beg; i < pInfo->end; i++) {
+    // Hash using Z Morton
+    int b = particle_bucket(&p[i], h);
+
+    // Add particle to the start of the list of bin b
+    // omp critical here
+      p[i].next = hash[b];
+      p[i].hind = b;
+      hash[b] = &p[i];
+  }
+  
+
+//printf("Reached end with processor %d\n", pInfo->proc );
+}
+*/
