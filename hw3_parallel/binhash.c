@@ -24,11 +24,11 @@
 
 unsigned particle_bucket(particle_t* p, float h)
 {
-    // We add 16 such that negative numbers are avoided. 
-    unsigned ix = (p->x[0]/h + 16);
-    unsigned iy = (p->x[1]/h + 16);
-    unsigned iz = (p->x[2]/h + 16);
-    return zm_encode(ix & HASH_MASK, iy & HASH_MASK, iz & HASH_MASK); // Hashes the last 4 digits
+  // We add 16 such that negative numbers are avoided. 
+  unsigned ix = (p->x[0]/h + 16);
+  unsigned iy = (p->x[1]/h + 16);
+  unsigned iz = (p->x[2]/h + 16);
+  return zm_encode(ix & HASH_MASK, iy & HASH_MASK, iz & HASH_MASK); // Hashes the last 4 digits
 }
 
 // Note: We check ALL buckets, even those that are weird... which hashing should take care of
@@ -62,64 +62,55 @@ void hash_particles(sim_state_t* s,float h)
   particle_t** hash = s->hash;
   int n = s->n;
 
-  //printf("In hashing! Processor %d\n", omp_get_thread_num());
-
   // First clear hashtable (TODO: Make this faster)
-//#pragma omp parallel for
+  //#pragma omp parallel for
   for (int i = 0; i < HASH_SIZE; i++)
     hash[i] = NULL;
 
   // Loop through particles to hash
-//#pragma omp parallel for
-//#pragma omp single // Debug this later
-  
+
   for (int i = 0; i < n; i++) {
     // Hash using Z Morton
     int b = particle_bucket(&p[i], h);
 
-    // Add particle to the start of the list of bin b
-    // omp critical here
-      p[i].next = hash[b];
-      p[i].hind = b;
-      hash[b] = &p[i];
+    p[i].next = hash[b];
+    p[i].hind = b;
+    hash[b] = &p[i];
   }
-  
-
-//printf("Reached end with processor %d\n", pInfo->proc );
 }
 
 // Bad idea
 /*
-void hash_particles_parallel(sim_state_t* s, proc_info* pInfo,float h)
-{
+   void hash_particles_parallel(sim_state_t* s, proc_info* pInfo,float h)
+   {
 
-  // Unpack particles and hash
-  particle_t* p = s->part;
-  particle_t** hash = s->hash;
-  int n = s->n;
+// Unpack particles and hash
+particle_t* p = s->part;
+particle_t** hash = s->hash;
+int n = s->n;
 
-  //printf("In hashing! Processor %d\n", omp_get_thread_num());
+//printf("In hashing! Processor %d\n", omp_get_thread_num());
 
-  // First clear hashtable (TODO: Make this faster)
+// First clear hashtable (TODO: Make this faster)
 //#pragma omp parallel for
-  for (int i = 0; i < HASH_SIZE; i++)
-    hash[i] = NULL;
+for (int i = 0; i < HASH_SIZE; i++)
+hash[i] = NULL;
 
-  // Loop through particles to hash
+// Loop through particles to hash
 //#pragma omp parallel for
 //#pragma omp single // Debug this later
- // #pragma omp parallel for 
-  for (int i = pInfo->beg; i < pInfo->end; i++) {
-    // Hash using Z Morton
-    int b = particle_bucket(&p[i], h);
+// #pragma omp parallel for 
+for (int i = pInfo->beg; i < pInfo->end; i++) {
+// Hash using Z Morton
+int b = particle_bucket(&p[i], h);
 
-    // Add particle to the start of the list of bin b
-    // omp critical here
-      p[i].next = hash[b];
-      p[i].hind = b;
-      hash[b] = &p[i];
-  }
-  
+// Add particle to the start of the list of bin b
+// omp critical here
+p[i].next = hash[b];
+p[i].hind = b;
+hash[b] = &p[i];
+}
+
 
 //printf("Reached end with processor %d\n", pInfo->proc );
 }
