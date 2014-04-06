@@ -274,7 +274,7 @@ int main(int argc, char** argv)
     for (int frame = 1; frame < nframes; ++frame) {
 
       // We sort according to Z-Morton to ensure locality, need to implement paralle qsort
-      if (frame % 10 == 0) {
+      if (frame % 5 == 0) {
 
         // Dividing into chunks of sorting each chunk
         // This alone turned out to better than sorting the entire array
