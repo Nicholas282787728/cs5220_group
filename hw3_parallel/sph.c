@@ -278,9 +278,7 @@ int main(int argc, char** argv)
 
         // Dividing into chunks of sorting each chunk
         // This alone turned out to better than sorting the entire array
-        //qsort(globalState->part+pInfo->beg, pInfo->end-pInfo->beg ,sizeof(particle_t),compPart);
-
-          qsort(globalState->part, n, sizeof(particle_t), compPart);
+        qsort(globalState->part+pInfo->beg, pInfo->end-pInfo->beg ,sizeof(particle_t),compPart);
         // Sorting the array consisting of sorted chunks
         // This turned out to actually lower the performance. That's why
         // I commented it.
@@ -301,7 +299,7 @@ int main(int argc, char** argv)
 
     for (int i = 0; i < npframe; ++i) {
       if (proc == 0 && npframe % 4 == 0) { // Ammortize hashing cost
-        hash_particles(globalState, params.h);
+        hash_particles(globalState, params.h);        
       }
 
 #pragma omp barrier
