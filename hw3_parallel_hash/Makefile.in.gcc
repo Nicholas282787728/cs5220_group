@@ -1,0 +1,4 @@
+CC       = gcc
+CFLAGS   = -std=gnu99 -Wall -g -fopenmp -msse4.2
+OPTFLAGS = -O3
+LIBS     = -lm
