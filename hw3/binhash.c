@@ -129,6 +129,8 @@ void hash_particles_proc(int thread_start, int thread_end, sim_state_t* s, float
     p[i].hind = b;
   }
 
+  #pragma omp barrier
+
   #pragma omp single
   {
     // Sort particles
