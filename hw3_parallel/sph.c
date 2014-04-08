@@ -215,7 +215,27 @@ void arraymerge(particle_t* a, int size, proc_info* pInfo)
   }
 }
 
-
+void sort(sim_state_t* globalState, proc_info* pInfo)
+{
+    // The serial version
+    //#pragma omp single // Implied barrier
+         //qsort(globalState->part,globalState-> n, sizeof(particle_t), compPart);
+            
+           // Parallel version
+           qsort(globalState->part+pInfo->beg, pInfo->end-pInfo->beg ,sizeof(particle_t),compPart);
+           
+           // Merging
+           //#pragma omp barrier
+           //if( pInfo->nproc >1 ) arraymerge(globalState->part, globalState->n, pInfo);
+           
+           
+           /*#pragma omp single
+           for (int i = 0; i<globalState->n;i++)
+           {
+               printf("particle %d bucket %d \n", i,globalState->part[i].hind);
+           }*/
+          
+}
 
 int main(int argc, char** argv)
 {
@@ -225,6 +245,7 @@ int main(int argc, char** argv)
 
   // Create global
   sim_state_t* globalState = init_particles(&params);
+  omp_set_num_threads(4);
 
 #pragma omp parallel shared(globalState, params) 
   {
@@ -278,7 +299,7 @@ int main(int argc, char** argv)
 
         // Dividing into chunks of sorting each chunk
         // This alone turned out to better than sorting the entire array
-        qsort(globalState->part+pInfo->beg, pInfo->end-pInfo->beg ,sizeof(particle_t),compPart);
+        //qsort(globalState->part+pInfo->beg, pInfo->end-pInfo->beg ,sizeof(particle_t),compPart);
         // Sorting the array consisting of sorted chunks
         // This turned out to actually lower the performance. That's why
         // I commented it.
@@ -287,13 +308,12 @@ int main(int argc, char** argv)
 //#pragma omp barrier*/
 
         // Serial version
+          
         /*#pragma omp single // Implied barrier
           qsort(globalState->part, n, sizeof(particle_t), compPart);*/
+          sort(globalState, pInfo);
       }
-      /*else if (frame % 49) {*/
-        /*if (proc == 0) {*/
-        /*}*/
-      /*}*/
+
 
 #pragma omp barrier // Need sort to finish
 
