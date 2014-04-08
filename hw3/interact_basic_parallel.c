@@ -197,6 +197,9 @@ void compute_accel(sim_state_t* state, sim_param_t* params)
     // Start with gravity and surface forces
     for (int i = 0; i < n; ++i)
         vec3_set(p[i].a,  0, -g, 0);
+    
+    // Rehash the particles
+    hash_particles(state, h);
 
     // Constants for interaction term
     float C0 = 45 * mass / M_PI / ( (h2)*(h2)*h );
@@ -216,11 +219,6 @@ void compute_accel(sim_state_t* state, sim_param_t* params)
       if (tid == nthreads - 1) {
         thread_end = n;
       }
-
-      // Rehash the particles
-      hash_particles_proc(thread_start, thread_end, state, h);
-
-      #pragma omp barrier
 
       // Compute density and color
       compute_density_proc(thread_start, thread_end, state, params);
