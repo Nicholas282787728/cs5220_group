@@ -62,42 +62,118 @@ void hash_particles(sim_state_t* s, float h)
 
   // Unpack particles and hash
   particle_t* p = s->part;
-  particle_t** hash = s->hash;
+  hash_bin_t* hash = s->hash;
+
   int n = s->n;
 
-  // First clear hashtable (TODO: Make this faster)
-  for (int i = 0; i < HASH_SIZE; i++)
-    hash[i] = NULL;
-
-  // Loop through particles to hash
   for (int i = 0; i < n; i++) {
-    // Hash using Z Morton
-    int b = particle_bucket(&p[i], h);
-
-    // Add particle to the start of the list of bin b
-    p[i].next = hash[b];
+    int b = particle_bucket(p + i, h);
     p[i].hind = b;
-    hash[b] = &p[i];
   }
 
-}
+  // Sort particles
+  for (int i = 0; i < n; i++) {
 
-void hash_particles_proc(particle_t* p, particle_t** hash, int n, float h) {
+    particle_t x = p[i];
+
+    int j = i;
+
+    while (j > 0 && (p[j - 1].hind > x.hind || (p[j - 1].hind == x.hind && p[j - 1].ind > x.ind))) {
+      p[j] = p[j-1];
+      j -= 1;
+    }
+
+    p[j] = x;
+
+  }
 
   // First clear hashtable (TODO: Make this faster)
   for (int i = 0; i < HASH_SIZE; i++) {
-    hash[i] = NULL;
+    hash[i].size = 0;
+    hash[i].hash = NULL;
   }
+
+  int hash_bucket = -1;
+  int bucket_size = 0;
 
   // Loop through particles to hash
   for (int i = 0; i < n; i++) {
-    // Hash using Z Morton
-    int b = particle_bucket(&p[i], h);
 
-    // Add particle to the start of the list of bin b
-    p[i].next = hash[b];
-    p[i].hind = b;
-    hash[b] = &p[i];
+    if (p[i].hind != hash_bucket) {
+      if (hash_bucket >= 0) {
+        hash[hash_bucket].size = bucket_size;
+      }
+      hash_bucket = p[i].hind;
+      hash[hash_bucket].hash = p + i;
+      bucket_size = 1;
+    } else {
+      bucket_size += 1;
+    }
+
   }
+
+  hash[hash_bucket].size = bucket_size;
+
+}
+
+void hash_particles_proc(int thread_start, int thread_end, sim_state_t* s, float h) {
+
+  // Unpack particles and hash
+  particle_t* p = s->part;
+  hash_bin_t* hash = s->hash;
+
+  int n = s->n;
+
+  for (int i = thread_start; i < thread_end; i++) {
+    int b = particle_bucket(p + i, h);
+    p[i].hind = b;
+  }
+
+  #pragma omp single
+  {
+    // Sort particles
+    for (int i = 0; i < n; i++) {
+
+      particle_t x = p[i];
+
+      int j = i;
+
+      while (j > 0 && (p[j - 1].hind > x.hind || (p[j - 1].hind == x.hind && p[j - 1].ind > x.ind))) {
+        p[j] = p[j-1];
+        j -= 1;
+      }
+
+      p[j] = x;
+
+    }
+
+    // First clear hashtable (TODO: Make this faster)
+    for (int i = 0; i < HASH_SIZE; i++) {
+      hash[i].size = 0;
+      hash[i].hash = NULL;
+    }
+
+  }
+
+  int hash_bucket = -1;
+  int bucket_size = 0;
+
+  // Loop through particles to hash
+  for (int i = thread_start; i < thread_end; i++) {
+
+    if (p[i].hind != hash_bucket) {
+      if (hash_bucket >= 0) {
+        hash[hash_bucket].size += bucket_size;
+      }
+      hash_bucket = p[i].hind;
+      hash[hash_bucket].hash = p + i;
+      bucket_size = 1;
+    } else {
+      bucket_size += 1;
+    }
+
+  }
+
+  hash[hash_bucket].size += bucket_size;
 
 }

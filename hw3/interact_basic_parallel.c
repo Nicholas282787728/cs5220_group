@@ -47,7 +47,7 @@ void compute_density(sim_state_t* restrict s, sim_param_t* restrict params)
     int n = s->n;
     particle_t* p = s->part;
 
-    particle_t** hash = s->hash;
+    hash_bin_t* hash = s->hash;
 
     float h  = params->h;
     float h2 = h*h;
@@ -74,15 +74,17 @@ void compute_density(sim_state_t* restrict s, sim_param_t* restrict params)
       particle_t* pj;
 
       for (int j = 0; j < 27; j++) {
-        pj = hash[neighborBucket[j]]; // Retrieve first in linked list
-        if (pj != NULL) { // Go through linked list
-          do {
-            if (pi != pj) {
-              update_density(pi,pj, h2, C);
-            }
-            pj = pj->next;
-          } while (pj != NULL);
+
+        hash_bin_t hash_bin_j = hash[neighborBucket[j]];
+
+        for (int k = 0; k < hash_bin_j.size; k++) {
+          particle_t* pj = hash_bin_j.hash + k;
+          //if (pi->ind >= pj->ind) break;
+          if (pi != pj) { // Don't want to do crazy
+            update_density(pi, pj, h2, C);
+          }
         }
+
       }
     }
 
@@ -91,7 +93,7 @@ void compute_density(sim_state_t* restrict s, sim_param_t* restrict params)
 void compute_density_proc(int thread_start, int thread_end, sim_state_t* restrict s, sim_param_t* restrict params)
 {
     particle_t* p = s->part;
-    particle_t** hash = s->hash;
+    hash_bin_t* hash = s->hash;
 
     float h  = params->h;
     float h2 = h*h;
@@ -115,16 +117,19 @@ void compute_density_proc(int thread_start, int thread_end, sim_state_t* restric
 
       // Loop through neighbors
       for (int j = 0; j < 27; j++) {
-        particle_t* pj = hash[neighborBucket[j]]; // Retrieve first in linked list
-        if (pj != NULL) { // Go through linked list
-          do {
-            if (pi != pj) {
-              update_density(pi, pj, h2, C);
-            }
-            pj = pj->next;
-          } while (pj != NULL);
+
+        hash_bin_t hash_bin_j = hash[neighborBucket[j]];
+
+        for (int k = 0; k < hash_bin_j.size; k++) {
+          particle_t* pj = hash_bin_j.hash + k;
+          //if (pi->ind >= pj->ind) break;
+          if (pi != pj) { // Don't want to do crazy
+            update_density(pi, pj, h2, C);
+          }
         }
+
       }
+
     }
 
 }
@@ -166,11 +171,9 @@ void update_forces(particle_t* restrict pi, particle_t* restrict pj, float h2,
 
         // Equal and opposite pressure forces
         vec3_saxpy(pi->a,  wp, dx);
-        //vec3_saxpy(pj->a, -wp, dx);
         
         // Equal and opposite viscosity forces
         vec3_saxpy(pi->a,  wv, dv);
-        //vec3_saxpy(pj->a, -wv, dv);
     }
 
 }
@@ -188,20 +191,17 @@ void compute_accel(sim_state_t* state, sim_param_t* params)
 
     // Unpack system state
     particle_t* p = state->part;
-    particle_t** hash = state->hash;
+    hash_bin_t* hash = state->hash;
     int n = state->n;
-
-    // Constants for interaction term
-    float C0 = 45 * mass / M_PI / ( (h2)*(h2)*h );
-    float Cp = k/2;
-    float Cv = -mu;
 
     // Start with gravity and surface forces
     for (int i = 0; i < n; ++i)
         vec3_set(p[i].a,  0, -g, 0);
 
-    // Rehash the particles
-    hash_particles(state, h);
+    // Constants for interaction term
+    float C0 = 45 * mass / M_PI / ( (h2)*(h2)*h );
+    float Cp = k/2;
+    float Cv = -mu;
 
     #pragma omp parallel default(none) firstprivate(state, hash, params, p, n, C0, Cp, Cv)
     {
@@ -216,6 +216,11 @@ void compute_accel(sim_state_t* state, sim_param_t* params)
       if (tid == nthreads - 1) {
         thread_end = n;
       }
+
+      // Rehash the particles
+      hash_particles_proc(thread_start, thread_end, state, h);
+
+      #pragma omp barrier
 
       // Compute density and color
       compute_density_proc(thread_start, thread_end, state, params);
@@ -235,14 +240,14 @@ void compute_accel(sim_state_t* state, sim_param_t* params)
 
         // Loop through neighbors
         for (int j = 0; j < 27; j++) {
-          particle_t* pj = hash[neighborBucket[j]];
-          if (pj != NULL) { // Go through linked list
-            do {
-              if (pi != pj) { // Don't want to do crazy
-                update_forces(pi, pj, h2, rho0, C0, Cp, Cv);
-              }
-              pj = pj->next;
-            } while (pj != NULL);
+
+          hash_bin_t hash_bin_j = hash[neighborBucket[j]];
+
+          for (int k = 0; k < hash_bin_j.size; k++) {
+            particle_t* pj = hash_bin_j.hash + k;
+            if (pi != pj) { // Don't want to do crazy
+              update_forces(pi, pj, h2, rho0, C0, Cp, Cv);
+            }
           }
 
         }

@@ -105,7 +105,9 @@ sim_state_t* place_particles(sim_param_t* param,
  * @c*/
 void normalize_mass(sim_state_t* s, sim_param_t* param)
 {
+
     s->mass = 1;
+
     hash_particles(s, param->h);
     compute_density(s, param);
     float rho0 = param->rho0;
@@ -169,10 +171,10 @@ int main(int argc, char** argv)
     check_state(state);
     for (int frame = 1; frame < nframes; ++frame) {
 
-      // We sort according to Z-Morton to ensure locality
-      if (frame % 10 == 0) {
-        qsort(state->part, n, sizeof(particle_t), compPart);
-      }
+//      // We sort according to Z-Morton to ensure locality
+//      if (frame % 10 == 0) {
+//        qsort(state->part, n, sizeof(particle_t), compPart);
+//      }
 
       for (int i = 0; i < npframe; ++i) {
         compute_accel(state, &params);

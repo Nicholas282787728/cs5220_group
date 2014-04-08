@@ -25,11 +25,16 @@ typedef struct particle_t {
     struct particle_t* next;  /* List link for spatial hashing */
 } particle_t;
 
+typedef struct hash_bin_t {
+  int size;
+  particle_t* hash;
+} hash_bin_t;
+
 typedef struct sim_state_t {
     int n;                /* Number of particles    */
     float mass;           /* Particle mass          */
     particle_t* part;     /* Particles              */
-    particle_t** hash;    /* Hash table             */
+    hash_bin_t* hash;    /* Hash table             */
 } sim_state_t;
 
 sim_state_t* alloc_state(int n);

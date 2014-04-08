@@ -46,7 +46,7 @@
 unsigned particle_bucket(particle_t* p, float h);
 void particle_neighborhood(unsigned* buckets, particle_t* p, float h);
 void hash_particles(sim_state_t* s, float h);
-void hash_particles_proc(particle_t* p, particle_t** hash, int n, float h);
+void hash_particles_proc(int thread_start, int thread_end, sim_state_t* s, float h);
 
 /*@q*/
 #endif /* BINHASH_H */

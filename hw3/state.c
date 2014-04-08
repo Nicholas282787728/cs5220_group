@@ -7,7 +7,7 @@ sim_state_t* alloc_state(int n)
     sim_state_t* s = (sim_state_t*) calloc(1, sizeof(sim_state_t));
     s->n     = n;
     s->part  = (particle_t*) calloc(n, sizeof(particle_t));
-    s->hash  = (particle_t**) calloc(HASH_SIZE, sizeof(particle_t*));
+    s->hash  = (hash_bin_t*) calloc(HASH_SIZE, sizeof(hash_bin_t));
 
     return s;
 }
