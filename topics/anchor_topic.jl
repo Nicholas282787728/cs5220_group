@@ -138,29 +138,27 @@ function simplex_nnls_eg{T<:Real}(AtA :: Array{T,2},
   
   maxiter = 500
   iter = maxiter
-  eta = 1000 # if set to 10000, the elapsed time is 1.711377942 which is less than the time the Active Set algorithm takes (2.890630159)
+  eta = 2000 # if set to 10000, the elapsed time is 1.711377942 which is less than the time the Active Set algorithm takes (2.890630159)
   epsilon = 1e-5
   ccount = 0; # counts the number of times the algorithm converges. 
   
   while (iter > 0)
-
-  		p = 2 * AtA.' * (AtA * x - Atb)
-  	
+  		p = AtA * x - Atb
   		for k = 1:K
   			x[k] = x[k] * e^(-eta * p[k])
-  			#x[k] = min(x[k],1.0f0)
+                        x[k] = min(x[k],1.0f0)
   		end
   
   		x = x/sum(abs(x))
-  		p_prime = 2 * AtA.' * (AtA * x - Atb)
-  		condif = (p_prime .- minimum(p_prime))' * x
+  		p_prime = AtA * x - Atb
+  		condif = 2*(p_prime .- minimum(p_prime))' * x
 
   		if (condif[1] < epsilon)
   			isConverge = true
   			ccount = ccount + 1
-  			return x, iter, ccount
+                        return x, iter, ccount
   		end
-  		iter = iter - 1
+                iter = iter - 1
                 eta = eta * 0.99
   end
   
@@ -345,13 +343,13 @@ function compute_A(Qn, s, p)
 
     # Version 1: Exponentiated gradient
     (ci, maxiter, ccount) = simplex_nnls_eg(AtA,Atb)
-        count = count + ccount; # if equal to 1573, the algorithm has always converged.
-	
+	count = count + ccount; # if equal to 1573, the algorithm has always converged.
+	alliter = alliter + maxiter
     # Version 2: Warm-started active-set iteration
     #ci = proj_simplex(AtA\Atb)
     #(ci, maxiter) = simplex_nnls_as(AtA, Atb, ci)
 	
-    alliter = alliter + maxiter
+    #alliter = alliter + maxiter
     C[i,:] = ci' .* s[i]
 
     # Check normalization error
