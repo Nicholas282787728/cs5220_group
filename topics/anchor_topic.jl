@@ -126,44 +126,44 @@ end
 #
 # [3]: http://dx.doi.org/10.1006/inco.1996.2612
 
-function simplex_nnls_eg{T<:Real}(AtA :: Array{T,2}, 
-                                  Atb :: Vector{T})
-  
+function simplex_nnls_eg{T<:Real}(AtA :: Array{T,2}, Atb :: Vector{T})
+
   K = size(AtA, 2)
   x = 1/K * ones(T, K)
+
   isConverge = false
-  
+
   p = zeros(T, size(x))
   p_prime = zeros(T, size(x))
-  
+
   maxiter = 500
   iter = maxiter
   eta = 2000 # if set to 10000, the elapsed time is 1.711377942 which is less than the time the Active Set algorithm takes (2.890630159)
-  epsilon = 1e-5
+  epsilon = 1e-5 # "Living dangerously" haha
   ccount = 0; # counts the number of times the algorithm converges. 
-  
-  while (iter > 0)
-  		p = AtA * x - Atb
-  		for k = 1:K
-  			x[k] = x[k] * e^(-eta * p[k])
-                        x[k] = min(x[k],1.0f0)
-  		end
-  
-  		x = x/sum(abs(x))
-  		p_prime = AtA * x - Atb
-  		condif = 2*(p_prime .- minimum(p_prime))' * x
 
-  		if (condif[1] < epsilon)
-  			isConverge = true
-  			ccount = ccount + 1
-                        return x, iter, ccount
-  		end
-                iter = iter - 1
-                eta = eta * 0.99
+  while (iter > 0)
+    p = AtA * x - Atb
+    for k = 1:K
+      x[k] = x[k] * e^(-eta * p[k])
+      x[k] = min(x[k],1.0f0)
+    end
+
+    x = x/norm(x, 1) # sum(abs(x)) # Maybe use norm(x, 1)?
+    p_prime = AtA * x - Atb
+    condif = 2*(p_prime .- minimum(p_prime))' * x
+
+    if (condif[1] < epsilon)
+      isConverge = true
+      ccount = 1
+      return x, 501-iter, ccount
+    end
+    iter = iter - 1
+    eta = eta * 0.99
   end
-  
+
   x, maxiter, ccount
-  
+
 end
 
 
@@ -187,8 +187,8 @@ end
 # Cholesky factor.
 
 function simplex_nnls_as{T<:Real}(AtA :: Array{T,2}, 
-                                  Atb :: Vector{T}, 
-                                  x :: Vector{T} = [])
+  Atb :: Vector{T}, 
+  x :: Vector{T} = [])
 
   # Set up starting point and tolerance
   if isempty(x)
@@ -219,7 +219,7 @@ function simplex_nnls_as{T<:Real}(AtA :: Array{T,2},
     rr = r.-mu
     fill!(p,0.)
     p[P] = CF\rr[P]
-    
+
     if norm(p, Inf) < tol
 
       # Find constraint that should not be active
@@ -251,7 +251,7 @@ function simplex_nnls_as{T<:Real}(AtA :: Array{T,2},
           alpha = x[j]/p[j]
         end
       end
-      
+
       # Take a Newton step and adjust P
       if alpha == 1.
         x[:] = x-p
@@ -343,18 +343,19 @@ function compute_A(Qn, s, p)
 
     # Version 1: Exponentiated gradient
     (ci, maxiter, ccount) = simplex_nnls_eg(AtA,Atb)
-	count = count + ccount; # if equal to 1573, the algorithm has always converged.
-	alliter = alliter + maxiter
+    count = count + ccount; # if equal to 1573, the algorithm has always converged.
+    alliter = alliter + maxiter
+
     # Version 2: Warm-started active-set iteration
     #ci = proj_simplex(AtA\Atb)
     #(ci, maxiter) = simplex_nnls_as(AtA, Atb, ci)
-	
+
     #alliter = alliter + maxiter
     C[i,:] = ci' .* s[i]
 
     # Check normalization error
     maxerr1 = max(maxerr1, abs(sum(ci)-1))
-    
+
     # Check error measure used in EG convergence
     r = AtA*ci-Atb
     phi = 2*(r.-minimum(r))'*ci
@@ -478,7 +479,7 @@ function compact_doc_matrix(vocab, docs, words, Ddw)
 end
 
 function trim_vocab(vocab, docs, words, Ddw; 
-                    min_tf=0, min_tfidf=0)
+  min_tf=0, min_tfidf=0)
 
   # Mark words that are important enough (tf or tf-idf)
   tf  = word_freqs(words, Ddw)
@@ -529,7 +530,7 @@ function compute_Q(docs, words, Ddw)
   Htdw = Ddw .* scaling[docs]
   Ht = sparse(words, docs, Htdw)
   Q = Ht*Ht' - spdiagm(diag_Hhat,0)
-  
+
   Q = Q/( sum(Q)[1] )
   toc()
   Q
@@ -582,7 +583,7 @@ function load_uci(basename; min_tf=0, min_tfidf=0)
     println("-- Trimming vocabulary")
     tic()
     (words, idocs, iwords, V) = trim_vocab(words, idocs, iwords, V; 
-                                           min_tf=min_tf, min_tfidf=min_tfidf)
+    min_tf=min_tf, min_tfidf=min_tfidf)
     toc()
   end
 
