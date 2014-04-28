@@ -126,17 +126,19 @@ end
 #
 # [3]: http://dx.doi.org/10.1006/inco.1996.2612
 
-function simplex_nnls_eg{T<:Real}(AtA :: Array{T,2}, Atb :: Vector{T})
+function simplex_nnls_eg{T<:Real}(AtA :: Array{T,2}, Atb :: Vector{T}, x=[], maxiter=500)
 
   K = size(AtA, 2)
-  x = 1/K * ones(T, K)
+  # Set up starting point and tolerance
+  if isempty(x)
+    x = 1/K * ones(T, K)
+  end
 
   isConverge = false
 
   p = zeros(T, size(x))
   p_prime = zeros(T, size(x))
 
-  maxiter = 500
   iter = maxiter
   eta = 2000 # if set to 10000, the elapsed time is 1.711377942 which is less than the time the Active Set algorithm takes (2.890630159)
   epsilon = 1e-5 # "Living dangerously" haha
@@ -144,6 +146,18 @@ function simplex_nnls_eg{T<:Real}(AtA :: Array{T,2}, Atb :: Vector{T})
 
   while (iter > 0)
     p = 2*(AtA * x - Atb)
+
+    # It seems map might be slightly faster, but not on this particular problem:
+
+    #=Using a[i] = i for a 5 million large array, and b is the square of a=#
+    #=tic(); for i=1:5000000=#
+      #=a[i] = min(a[i]*log(2*b[i])*sin(a[i]/b[i]), 500)=#
+    #=end; toc() (around 9 seconds)=#
+    #=(reset a)=#
+    #=tic(); a = map((x,y) -> min(x*log(2*y)*sin(x/y), 500), a, b); toc() # around 5 seconds=#
+    
+    #x = map((a,b) -> min(a*e^(-eta*b), 1.0f0), x, p) #takes around 9 seconds vs 5 seconds for me
+
     for k = 1:K
       x[k] = x[k] * e^(-eta * p[k])
       x[k] = min(x[k],1.0f0)
@@ -338,6 +352,7 @@ function compute_A(Qn, s, p)
   maxerr2 = 0.0
   alliter = 0
   count = 0;
+
   for i = 1:nw
     Atb = reshape(AtB[:,i], (nt,))
 
@@ -360,8 +375,8 @@ function compute_A(Qn, s, p)
     r = AtA*ci-Atb
     phi = 2*(r.-minimum(r))'*ci
     maxerr2 = max(maxerr2, phi[1])
-
   end
+
   println("Max error ", maxerr1, " ", maxerr2)
   println("Total iterations: ", alliter)
   println("convergence occurs: ", count, " times")
@@ -386,6 +401,8 @@ end
 # top word selection `TW`.
 
 function mine_topics(Q, ntopic=100, nword=20)
+
+  #println(nprocs())
 
   println("-- Compute row scaling")
   tic()
