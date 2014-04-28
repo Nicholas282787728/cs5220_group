@@ -143,14 +143,14 @@ function simplex_nnls_eg{T<:Real}(AtA :: Array{T,2}, Atb :: Vector{T})
   ccount = 0; # counts the number of times the algorithm converges. 
 
   while (iter > 0)
-    p = AtA * x - Atb
+    p = 2*(AtA * x - Atb)
     for k = 1:K
       x[k] = x[k] * e^(-eta * p[k])
       x[k] = min(x[k],1.0f0)
     end
 
     x = x/norm(x, 1) # sum(abs(x)) # Maybe use norm(x, 1)?
-    p_prime = AtA * x - Atb
+    p_prime = 2*(AtA * x - Atb)
     condif = 2*(p_prime .- minimum(p_prime))' * x
 
     if (condif[1] < epsilon)
