@@ -126,7 +126,7 @@ end
 #
 # [3]: http://dx.doi.org/10.1006/inco.1996.2612
 
-function simplex_nnls_eg{T<:Real}(AtA :: Array{T,2}, Atb :: Vector{T}, x=[], maxiter=500)
+@everywhere function simplex_nnls_eg{T<:Real}(AtA :: Array{T,2}, Atb :: Vector{T}, x=[], maxiter=500)
 
   K = size(AtA, 2)
   # Set up starting point and tolerance
@@ -384,6 +384,80 @@ function compute_A(Qn, s, p)
   scale(C,1./sc)
 end
 
+# Parallel Computation of A as above
+function pcompute_A(Qn, s, p)
+  Tt = Qn[p,:]
+  AtA = convert(Array{Float32,2}, full(Tt*Tt'))
+  AtB = convert(Array{Float32,2}, full(Tt*(Qn')))
+  (nt,nw) = size(Tt)
+  C = zeros(Float32, (nw,nt))
+  maxerr1 = 0.0
+  maxerr2 = 0.0
+  alliter = 0
+  count = 0;
+
+  rrefs = {} # Remote refernces
+  np = nprocs()
+  unitsize=ceil(nw/np)
+
+  for i = 1:np
+    # Find range
+    first=unitsize*(i-1)+1
+    last=unitsize*i
+    if last>nw
+      last=nw
+    end
+
+    push!(rrefs, @spawn local_calc(AtB,AtA, first:last, nw, nt, s))
+  end
+
+  for i in rrefs # wow, uber-Pythonic
+    result = fetch(i) # Get results from the processor
+    C = C + result[1]
+    maxerr1 = max(maxerr1, result[2])
+    maxerr2 = max(maxerr2, result[3])
+    alliter = alliter + result[4]
+    count = count + result[5]
+  end
+
+  println("Max error ", maxerr1, " ", maxerr2)
+  println("Total iterations: ", alliter)
+  println("convergence occurs: ", count, " times")
+  sc = reshape(sum(C,1),nt)
+  scale(C,1./sc)
+
+end
+
+# Local part
+@everywhere function local_calc(AtB, AtA, range, nw, nt, s)
+  C = zeros(Float32, (nw,nt))
+  maxerr1 = 0.0
+  maxerr2 = 0.0
+  count = 0
+  alliter = 0
+
+  for i = range
+    Atb = reshape(AtB[:,i], (nt,))
+
+    # Version 1: Exponentiated gradient
+    (ci, maxiter, ccount) = simplex_nnls_eg(AtA,Atb)
+    count = count + ccount; # if equal to 1573, the algorithm has always converged.
+    alliter = alliter + maxiter
+
+    C[i,:] = ci' .* s[i]
+
+    # Check normalization error
+    maxerr1 = max(maxerr1, abs(sum(ci)-1))
+
+    # Check error measure used in EG convergence
+    r = AtA*ci-Atb
+    phi = 2*(r.-minimum(r))'*ci
+    maxerr2 = max(maxerr2, phi[1])
+  end
+
+  C, maxerr1, maxerr2, alliter, count
+end
+
 ##
 # The main event
 # ==============
@@ -402,7 +476,8 @@ end
 
 function mine_topics(Q, ntopic=100, nword=20)
 
-  #println(nprocs())
+  # First, import required file into ALL processor
+  #require("local_calc")  # First, import required file into ALL processor
 
   println("-- Compute row scaling")
   tic()
@@ -415,7 +490,7 @@ function mine_topics(Q, ntopic=100, nword=20)
   tic(); (p,r) = choose_anchors_partial(Qn', ntopic); toc()
 
   println("-- Compute intensities")
-  tic(); A = compute_A(Qn, s, p); toc()
+  tic(); A = pcompute_A(Qn, s, p); toc()
 
   println("-- Find top words per topic")
   tic()
