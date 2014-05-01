@@ -1,0 +1,15 @@
+-- Reading files
+elapsed time: 18.248131639 seconds
+-- Forming Q
+elapsed time: 100.098334211 seconds
+-- Compute row scaling
+elapsed time: 47.857542352 seconds
+-- Timing anchor words with partial fact
+elapsed time: 194.46938063 seconds
+-- Compute intensities
+Max error 3.5762786865234375e-7 0.2873828113079071
+Total iterations: 13328087
+convergence occurs: 1945 times
+elapsed time: 883.633955626 seconds
+-- Find top words per topic
+elapsed time: 1.063582212 seconds
