@@ -491,7 +491,7 @@ function mine_topics(Q, ntopic=100, nword=20)
   (p,r) = choose_anchors_partial(Qn', ntopic);
   #println("-- Compute intensities")
   #tic(); A = compute_A(Qn, s, p); toc()
-  A = compute_A(Qn, s, p);
+  A = pcompute_A(Qn, s, p);
 
   #println("-- Find top words per topic")
   #tic()
